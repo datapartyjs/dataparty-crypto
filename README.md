@@ -8,8 +8,8 @@ dataparty Cryptography
 
 ```
 const Crypto = require('@dataparty/crypto')
+
 const identity = new Crypto.Identity({id:'primary'})
-const alice = new Crypto.Identity({id:'alice'})
 ```
 
 
@@ -33,3 +33,12 @@ return msg1.encrypt(identity, alice.key.public).then((msg)=>{
 })
 ```
 
+# Developing
+
+ * `yarn build`
+ * `yarn watch`
+ * `yarn test`
+
+# Credits
+
+`@dataparty/crypto` is Open Source software developed by [RosHub Inc.](https://roshub.io)
