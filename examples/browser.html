@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <script src="../dist/dataparty_crypto.js"></script>
+  </head>
+  <body>
+
+    <script>
+      const identity = new dataparty_crypto.Identity({id:'primary'})
+      const alice = new dataparty_crypto.Identity({id:'alice'})
+
+      let msg1 = new dataparty_crypto.Message({
+        msg: {
+          data: 'hello world'
+        }
+      })
+
+      msg1.encrypt(identity, alice.key).then((msg)=>{
+
+        let msg2 = new dataparty_crypto.Message(msg)
+        
+        return msg2.decrypt(alice).then((data)=>{
+          console.log(`alice read: ${JSON.stringify(data,null,2)}`)
+        })
+      })
+    </script>
+
+  </body>
+
+</html>
