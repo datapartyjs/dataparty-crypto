@@ -2,7 +2,7 @@ import { box, sign, randomBytes, hash, verify } from "tweetnacl";
 
 import * as base64 from "@stablelib/base64";
 
-import { Buffer } from 'buffer/'
+import { Buffer } from 'buffer'
 
 const logger = require("debug")("dataparty-crypto.Routines");
 

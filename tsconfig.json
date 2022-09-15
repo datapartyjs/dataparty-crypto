@@ -1,8 +1,0 @@
-{
-    "compilerOptions": {
-      "inlineSourceMap": true,
-      "inlineSources": true,
-      "target": "es5"
-    }
-  }
-  
