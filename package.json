@@ -10,11 +10,13 @@
     "browser": {
       "context": "browser",
       "source": "src/index.ts",
+      "includeNodeModules": true,
       "engines": {
         "browsers": "Chrome 80"
       }
     },
     "main": {
+      "context": "node",
       "includeNodeModules": true
     }
   },
