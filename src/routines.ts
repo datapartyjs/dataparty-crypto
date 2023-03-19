@@ -34,6 +34,7 @@ export const createKey = (): IKey => {
   };
 };
 
+
 export const getBip39 = (): any => {
   return bip39;
 }
