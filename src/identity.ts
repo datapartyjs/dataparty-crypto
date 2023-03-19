@@ -1,5 +1,5 @@
 import Message from "./message";
-import { createKey } from "./routines";
+import { createKey, createKeyFromSeed } from "./routines";
 
 export default class Identity implements IIdentity {
   id: string;
@@ -65,5 +65,9 @@ export default class Identity implements IIdentity {
   static fromString(input: string) {
     const parsed = JSON.parse(input);
     return new Identity(parsed);
+  }
+
+  static fromSeed(seed: string) {
+    return new Identity(createKeyFromSeed(seed));
   }
 }

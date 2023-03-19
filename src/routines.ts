@@ -4,6 +4,8 @@ import * as base64 from "@stablelib/base64";
 
 import { Buffer } from 'buffer'
 
+const bip39 = require('bip39')
+
 const logger = require("debug")("dataparty-crypto.Routines");
 
 const newNonce = () => randomBytes(box.nonceLength);
@@ -28,8 +30,46 @@ export const createKey = (): IKey => {
       box: base64.encode(boxKeyPair.publicKey),
       sign: base64.encode(signKeyPair.publicKey)
     },
-    type: "ecdsa"
+    type: "nacl"
   };
+};
+
+export const getBip39 = (): any => {
+  return bip39;
+}
+
+export const validateSeed = (
+  seed: string
+): boolean => {
+
+  return bip39.validateMnemonic(seed);
+};
+
+/**
+ * Generate key from mnemonic seed phrase
+ */
+export const createKeyFromSeed = (
+  seed: string
+): IKey => {
+
+ const boxSeed = bip39.mnemonicToSeed('box '+seed);
+ const signSeed = bip39.mnemonicToSeed('sign '+seed);
+
+ const boxKeyPair = box.keyPair.fromSeed(boxSeed);
+ const signKeyPair = sign.keyPair.fromSeed(signSeed);
+
+  return {
+    private: {
+      box: base64.encode(boxKeyPair.secretKey),
+      sign: base64.encode(signKeyPair.secretKey)
+    },
+    public: {
+      box: base64.encode(boxKeyPair.publicKey),
+      sign: base64.encode(signKeyPair.publicKey)
+    },
+    type: "nacl"
+  };
+
 };
 
 /**
