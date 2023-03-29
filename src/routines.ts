@@ -4,6 +4,15 @@ import * as base64 from "@stablelib/base64";
 
 import { Buffer } from 'buffer'
 
+import hkdf from '@panva/hkdf'
+
+//! @todo use polyfill
+var crypto = require('crypto')
+
+if(!crypto.getRandomValues){
+  global.crypto = crypto.webcrypto
+}
+
 const bip39 = require('bip39')
 
 const logger = require("debug")("dataparty-crypto.Routines");
@@ -13,6 +22,8 @@ const newNonce = () => randomBytes(box.nonceLength);
 const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
+
+const hkdfSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
 
 /**
  * Generate private and public keys
@@ -39,25 +50,38 @@ export const getBip39 = (): any => {
   return bip39;
 }
 
-export const validateSeed = (
-  seed: string
+export const generateMnemonic = (): string => {
+  return bip39.generateMnemonic()
+}
+
+export const validateMnemonic = (
+  phrase: string
 ): boolean => {
 
-  return bip39.validateMnemonic(seed);
+  return bip39.validateMnemonic(phrase);
 };
 
 /**
- * Generate key from mnemonic seed phrase
+ * Generate key from mnemonic phrase
  */
-export const createKeyFromSeed = (
-  seed: string
+export const createKeyFromSeed = async (
+  phrase: string,
+  ignoreValidation: boolean
 ): IKey => {
 
- const boxSeed = bip39.mnemonicToSeed('box '+seed);
- const signSeed = bip39.mnemonicToSeed('sign '+seed);
+  const validMnemonic = validateMnemonic(phrase)
+  if(!ignoreValidation && !validMnemonic){
+    throw new Error('invalid mnemonic phrase')
+  }
+  
+  const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
+  const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 96)
 
- const boxKeyPair = box.keyPair.fromSeed(boxSeed);
- const signKeyPair = sign.keyPair.fromSeed(signSeed);
+  const boxSecret = fullSecret.slice(0, 32)
+  const signSecret = fullSecret.slice(32)
+
+  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
+  const signKeyPair = sign.keyPair.fromSecretKey(signSecret);
 
   return {
     private: {
