@@ -64,7 +64,7 @@ export const validateMnemonic = (
 /**
  * Generate key from mnemonic phrase
  */
-export const createKeyFromSeed = async (
+export const createKeyFromMnemonic = async (
   phrase: string,
   ignoreValidation: boolean
 ): IKey => {
