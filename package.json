@@ -1,7 +1,7 @@
 {
   "name": "@dataparty/crypto",
   "private": false,
-  "version": "1.0.4",
+  "version": "1.0.3",
   "description": "dataparty crypto routines",
   "main": "./dist/dataparty-crypto.js",
   "browser": "dist/dataparty-crypto-browser.js",
