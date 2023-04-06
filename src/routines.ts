@@ -7,13 +7,21 @@ import { Buffer } from 'buffer'
 import hkdf from '@panva/hkdf'
 
 //! @todo use polyfill
-var crypto = require('crypto')
+/*var crypto = require('crypto')
 
 if(!crypto.getRandomValues){
   global.crypto = crypto.webcrypto
-}
+}*/
 
-const bip39 = require('bip39')
+//const crypto = require('crypto')
+
+//console.log(crypto)
+
+import * as crypto from 'crypto'
+
+//import {getRandomValues, pbkdf2 } from 'crypto'
+
+import * as bip39 from 'bip39'
 
 const logger = require("debug")("dataparty-crypto.Routines");
 
@@ -50,8 +58,28 @@ export const getBip39 = (): any => {
   return bip39;
 }
 
-export const generateMnemonic = (): string => {
-  return bip39.generateMnemonic()
+export const getRandomBuffer = async(
+  length: number
+): Buffer => {
+  let randomBuffer = new Promise((resolve, reject)=>{
+    crypto.randomBytes(length, (err,buf)=>{
+      if(err){ return reject(err) }
+
+      resolve(buf)
+    })
+  })
+
+  return randomBuffer
+}
+
+/**
+ * Generate mnemonic phrase
+ */
+export const generateMnemonic = async (): string => {
+
+  let randomBuffer = await getRandomBuffer(16)
+  
+  return bip39.entropyToMnemonic(randomBuffer)
 }
 
 export const validateMnemonic = (
@@ -76,6 +104,54 @@ export const createKeyFromMnemonic = async (
   
   const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
   const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 96)
+
+  const boxSecret = fullSecret.slice(0, 32)
+  const signSecret = fullSecret.slice(32)
+
+  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
+  const signKeyPair = sign.keyPair.fromSecretKey(signSecret);
+
+  return {
+    private: {
+      box: base64.encode(boxKeyPair.secretKey),
+      sign: base64.encode(signKeyPair.secretKey)
+    },
+    public: {
+      box: base64.encode(boxKeyPair.publicKey),
+      sign: base64.encode(signKeyPair.publicKey)
+    },
+    type: "nacl"
+  };
+
+};
+
+/**
+ * Generate salt
+ */
+export const generateSalt = async (): Buffer => {
+
+  let randomBuffer = await getRandomBuffer(32)
+  return randomBuffer
+}
+
+/**
+ * Generate private and public keys from password and salt
+ */
+export const createKeyFromPassword = async (
+  password: string,
+  salt: Buffer,
+  rounds: Number = 500000
+): IKey => {
+
+
+  const fullSecret = await ( new Promise((resolve,reject)=>{
+    crypto.pbkdf2(password, salt, rounds, 96, 'sha512', (err, derivedKey)=>{
+      if(err){ return reject(err) }
+
+      resolve(derivedKey)
+    })
+  }))
+
 
   const boxSecret = fullSecret.slice(0, 32)
   const signSecret = fullSecret.slice(32)

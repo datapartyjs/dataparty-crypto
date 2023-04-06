@@ -4,7 +4,7 @@ declare interface IKeyBundle {
 }
 
 declare interface IKey {
-  type: "ecdsa";
+  type: "nacl";
   private?: IKeyBundle;
   public: IKeyBundle;
 }
