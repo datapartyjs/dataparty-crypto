@@ -1,10 +1,26 @@
-# dataparty-crypto
-dataparty Cryptography
+# @dataparty/crypto
+[![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)[![license](https://img.shields.io/github/license/datapartyjs/dataparty-crypto)](https://github.com/datapartyjs/dataparty-crypto/blob/master/LICENSE)
+
+dataparty cryptography
+
+
+ * NPM - [npmjs.com/package/@dataparty/crypto](https://www.npmjs.com/package/@dataparty/crypto)
+ * Code - [github.com/datapartyjs/dataparty-crypto](https://github.com/datapartyjs/dataparty-crypto)
+ * Support - [ko-fi/dataparty](https://ko-fi.com/dataparty)
 
 `It slices, it dices, and it enciphers`
 
+## Features
 
-## Identity
+ * Based on [TweetNaCL](https://www.npmjs.com/package/tweetnacl)
+ * Password derived keys
+ * Mnemonic derived keys seed phrases
+
+
+
+### Identity
+
+Creating a random key pair
 
 ```
 const Crypto = require('@dataparty/crypto')
@@ -14,7 +30,7 @@ const bob = new Crypto.Identity({id:'bob'})
 ```
 
 
-## Message
+### Message
 
 
 ```
@@ -35,10 +51,7 @@ return msg1.encrypt(bob, alice.key.public).then((msg)=>{
 
 # Developing
 
- * `yarn build`
- * `yarn watch`
- * `yarn test`
+ * `npm build`
+ * `npm watch`
+ * `npm test`
 
-# Credits
-
-`@dataparty/crypto` is Open Source software developed by [RosHub Inc.](https://roshub.io)
