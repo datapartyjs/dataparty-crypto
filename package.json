@@ -42,8 +42,7 @@
     "dist",
     "src",
     "index.js",
-    "index.d.ts",
-    "webpack.config.js"
+    "index.d.ts"
   ],
   "devDependencies": {
     "@parcel/transformer-typescript-types": "^2.7.0",
