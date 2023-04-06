@@ -1,5 +1,5 @@
 import Message from "./message";
-import { createKey, createKeyFromSeed } from "./routines";
+import { createKey, createKeyFromMnemonic } from "./routines";
 
 export default class Identity implements IIdentity {
   id: string;
@@ -67,7 +67,7 @@ export default class Identity implements IIdentity {
     return new Identity(parsed);
   }
 
-  static fromSeed(seed: string) {
-    return new Identity(createKeyFromSeed(seed));
+  static fromMnemonic(phrase: string) {
+    return new Identity(createKeyFromMnemonic(phrase));
   }
 }
