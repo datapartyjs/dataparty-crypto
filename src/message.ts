@@ -14,7 +14,21 @@ export default class Message implements IMessage {
   }
 
   get sender() {
-    return this.from.key;
+
+    if(this.enc){
+      return this.from;
+    }
+    else{
+      return this.sig.sender
+    }
+  }
+
+  toJSON(){
+    return {
+      enc: this.enc,
+      sig: this.sig,
+      msg: this.msg
+    }
   }
 
   async sign(identity: IIdentity) {
@@ -30,10 +44,20 @@ export default class Message implements IMessage {
     return true;
   }
 
+  async assertVerified(from: IIdentity) {
+    let verified = await this.verify(from)
+
+    if(!verified){
+      throw new Error('message is not verified')
+    }
+  }
+
   async verify(from: IIdentity) {
-    // TODO: Investigate type loop hole. I.e this.sig can be string or object.
-    // string is encrypted, and object is decrypted
-    return verifyData(from, this.sig as ISignature, this.msg);
+    if(this.enc){
+      await this.decrypt(from)
+    } else {
+      return verifyData(from, this.sig as ISignature, this.msg);
+    }
   }
 
   async decrypt(identity: IIdentity) {

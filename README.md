@@ -23,30 +23,68 @@ dataparty cryptography
 Creating a random key pair
 
 ```
-const Crypto = require('@dataparty/crypto')
+const dataparty_crypto = require('@dataparty/crypto')
 
-const alice = new Crypto.Identity({id:'alice'})
-const bob = new Crypto.Identity({id:'bob'})
+const alice = new dataparty_crypto.Identity({id:'alice'})
+const bob = new dataparty_crypto.Identity({id:'bob'})
 ```
 
 
-### Message
+### Messages
 
 
 ```
-let msg1 = new Crypto.Message({
-  msg: {
-    data: 'hello world'
-  }
+let encryptedMessage = new dataparty_crypto.Message({
+    msg: {
+        data: 'hello world'
+    }
 })
+```
 
-return msg1.encrypt(bob, alice.key.public).then((msg)=>{
-  
-  return msg.decrypt(alice).then((data)=>{
-    console.log(`alice read: ${JSON.stringify(data,null,2)}`)
-  })
-  
-})
+#### Encryption
+
+```
+//! Bob encrypts the message
+await encryptedMessage.encrypt(bob, alice.toMini())
+
+sendToAlice( encryptedMessage.toJSON() )
+```
+
+#### Decryption
+
+```
+//! Later alice decrypt a message
+const decryptedMessage = new dataparty_crypto.Message(msgFromBob)
+
+await decryptedMessage.decrypt(alice)
+
+console.log(`alice read: ${JSON.stringify(decryptedMessage.msg,null,2)}`)
+
+//! Another way to verify that bob sent the message
+await decryptedMessage.assertVerified(bob)
+```
+
+#### Signing
+
+```
+//! Alice signs a message
+const signedMsg = await alice.sign({a:'hello world'})
+
+sendToAlice( signedMsg.toJSON() )
+```
+
+
+#### Verifying
+
+```
+const signedMsg = new dataparty_crypto.Message(msfFromAlice)
+
+//! Verify that Alice sent the message
+const verified = await alice.verify(signedMsg)
+console.log('verified?', verified)
+
+//! Another way to verify that alice sent the message
+await signedMsg.assertVerified(alice)
 ```
 
 # Developing

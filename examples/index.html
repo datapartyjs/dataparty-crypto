@@ -40,6 +40,53 @@ async function main (){
     const deltaMs = endMs - startMs
 
     console.log('time (ms):', (deltaMs/1000) )
+
+
+
+    console.log('### Example messages')    
+
+
+    const alice = new dataparty_crypto.Identity({id:'alice'})
+    const bob = new dataparty_crypto.Identity({id:'bob'})
+
+    let msg1 = new dataparty_crypto.Message({
+        msg: {
+            data: 'hello world'
+        }
+    })
+
+    console.log('alice', alice)
+    console.log('bob', bob)
+
+    const msg = await msg1.encrypt(bob, alice.toMini())
+        
+    const msg2 = new dataparty_crypto.Message(msg)
+    
+    const output = await msg2.decrypt(alice)
+
+    console.log('\tencrypted message', msg1)
+    console.log('\tdecrypted message', msg2)
+
+    console.log(`alice read: ${JSON.stringify(output,null,2)}`)
+    console.log('sender', msg2.sender)
+
+
+    console.log('### Example signatures')
+
+    const aliceCopy = new dataparty_crypto.Identity(alice.toJSON())
+
+    const signedMsg = await alice.sign({a:'hello world'})
+
+    console.log('signedMsg', signedMsg)
+
+    const signedMsgCopy = new dataparty_crypto.Message(signedMsg)
+
+    const verified = await aliceCopy.verify(signedMsgCopy)
+    console.log('verified?', verified)
+    console.log('message -', signedMsgCopy.msg)
+    console.log('sender', signedMsgCopy.sender)
+
+    await signedMsgCopy.assertVerified(aliceCopy)
 }
 
 main().catch(err=>{
