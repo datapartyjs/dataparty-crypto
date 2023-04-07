@@ -14,6 +14,10 @@ async function main (){
     console.log('phrase')
     console.log('\t', phrase)
 
+    let key0 = await dataparty_crypto.Routines.createKey()
+
+    console.log('key0', key0)
+
     let key = await dataparty_crypto.Routines.createKeyFromMnemonic(phrase)
 
     console.log('key')
@@ -46,8 +50,8 @@ async function main (){
     console.log('### Example messages')    
 
 
-    const alice = new dataparty_crypto.Identity({id:'alice'})
-    const bob = new dataparty_crypto.Identity({id:'bob'})
+    const alice = new dataparty_crypto.Identity({id:'alice', key:key0})
+    const bob = new dataparty_crypto.Identity({id:'bob', key:key})
 
     let msg1 = new dataparty_crypto.Message({
         msg: {
@@ -58,11 +62,11 @@ async function main (){
     console.log('alice', alice)
     console.log('bob', bob)
 
-    const msg = await msg1.encrypt(bob, alice.toMini())
+    const msg = await msg1.encrypt(bob, bob.toMini())
         
     const msg2 = new dataparty_crypto.Message(msg)
     
-    const output = await msg2.decrypt(alice)
+    const output = await msg2.decrypt(bob)
 
     console.log('\tencrypted message', msg1)
     console.log('\tdecrypted message', msg2)
