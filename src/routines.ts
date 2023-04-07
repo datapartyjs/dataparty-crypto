@@ -6,20 +6,7 @@ import { Buffer } from 'buffer'
 
 import hkdf from '@panva/hkdf'
 
-//! @todo use polyfill
-/*var crypto = require('crypto')
-
-if(!crypto.getRandomValues){
-  global.crypto = crypto.webcrypto
-}*/
-
-//const crypto = require('crypto')
-
-//console.log(crypto)
-
 import * as crypto from 'crypto'
-
-//import {getRandomValues, pbkdf2 } from 'crypto'
 
 import * as bip39 from 'bip39'
 
@@ -60,7 +47,7 @@ export const getBip39 = (): any => {
 
 export const getRandomBuffer = async(
   length: number
-): Buffer => {
+): Promise<Buffer> => {
   let randomBuffer = new Promise((resolve, reject)=>{
     crypto.randomBytes(length, (err,buf)=>{
       if(err){ return reject(err) }
@@ -75,7 +62,7 @@ export const getRandomBuffer = async(
 /**
  * Generate mnemonic phrase
  */
-export const generateMnemonic = async (): string => {
+export const generateMnemonic = async (): Promise<string> => {
 
   let randomBuffer = await getRandomBuffer(16)
   
@@ -94,7 +81,7 @@ export const validateMnemonic = (
  */
 export const createKeyFromMnemonic = async (
   phrase: string,
-  ignoreValidation: boolean
+  ignoreValidation: boolean = false
 ): IKey => {
 
   const validMnemonic = validateMnemonic(phrase)
@@ -185,11 +172,11 @@ export const encryptData = async function(
   data: any
 ): Promise<IEncryptedData> {
 
+
   const payload = Buffer.from(JSON.stringify({
-      from: ourIdentity.toJSON(true),
-      data
-    })
-  );
+    from: ourIdentity.toMini(),
+    data
+  }));
 
   logger(
     `encrypting ${payload.length} bytes from 
@@ -332,6 +319,22 @@ export const decryptData = async function(
 
   const { data, from } = JSON.parse(Buffer.from(payload).toString());
 
+  decryptStep = "VERIFY SENDER";
+  //#region
+
+  if(from.public.box != base64.encode(theirPublicBoxKey)
+    || from.public.sign != base64.encode(theirPublicSignKey)
+  ) {
+
+    const errorMessage = `ERROR ${decryptStep}: Cannot open ${base64.encode(payload)}. 
+    Their public sign key - ${base64.encode(theirPublicSignKey)}.
+    Their from key - ${from.public.sign}`;
+    logger(errorMessage);
+    throw new Error('payload [from] field does not match signature key');
+  }
+
+  //#endregion
+
   return { data, from };
 };
 
@@ -359,7 +362,7 @@ export const signData = async function(
 ): Promise<ISignature> {
   const { timestamp, sender, payload } = getPayload(signer, data);
 
-  logger(`signing ${payload.length} bytes as ${signer.key.public}`);
+  logger(`signing ${payload.length} bytes as ${signer.toMini()}`);
 
   const payloadHash = hash(payload);
 
