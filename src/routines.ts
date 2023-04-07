@@ -90,13 +90,13 @@ export const createKeyFromMnemonic = async (
   }
   
   const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
-  const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 96)
+  const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 64)
 
   const boxSecret = fullSecret.slice(0, 32)
-  const signSecret = fullSecret.slice(32)
+  const signSeed = fullSecret.slice(32)
 
   const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSecretKey(signSecret);
+  const signKeyPair = sign.keyPair.fromSeed(signSeed);
 
   return {
     private: {
@@ -132,7 +132,7 @@ export const createKeyFromPassword = async (
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
-    crypto.pbkdf2(password, salt, rounds, 96, 'sha512', (err, derivedKey)=>{
+    crypto.pbkdf2(password, salt, rounds, 64, 'sha512', (err, derivedKey)=>{
       if(err){ return reject(err) }
 
       resolve(derivedKey)
@@ -141,10 +141,10 @@ export const createKeyFromPassword = async (
 
 
   const boxSecret = fullSecret.slice(0, 32)
-  const signSecret = fullSecret.slice(32)
+  const signSeed = fullSecret.slice(32)
 
   const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSecretKey(signSecret);
+  const signKeyPair = sign.keyPair.fromSeed(signSeed);
 
   return {
     private: {
