@@ -176,7 +176,7 @@ export const createKeyFromPasswordArgon2 = async (
   argon: any,
   password: string,
   salt: Uint8Array,
-  associatedData: Buffer,
+  //associatedData: Buffer,
   timeCost: Number = 3,
   memoryCost: Number = 65536,
   parallelism: Number = 4,
@@ -200,7 +200,7 @@ export const createKeyFromPasswordArgon2 = async (
     const hashResult = await argon.hash({
       pass: password,
       salt,
-      ad: associatedData,
+      //ad: associatedData,
       time: timeCost,
       mem: memoryCost,
       parallelism,
@@ -215,6 +215,28 @@ export const createKeyFromPasswordArgon2 = async (
   } else {
 
     //! node
+    let argonType = {
+      'argon2d': argon.argon2d,
+      'argon2i': argon.argon2i,
+      'argon2id': argon.argon2id
+    }[type]
+
+    const hashResult = await argon.hash(password, {
+      salt,
+      //associatedData,
+      timeCost,
+      memoryCost,
+      parallelism,
+      hashLength,
+      type: argonType,
+      raw: true
+    })
+
+    console.log('hashResult', hashResult)
+
+  
+    fullSecret = hashResult
+
 
   }
 

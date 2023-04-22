@@ -99,9 +99,18 @@ async function argonTest(){
 
     console.log('Argon Test')
 
-    const salt = await dataparty_crypto.Routines.generateSalt()
+    const fromHexString = (hexString) =>
+  Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
 
-    console.log('\t','salt', salt)
+
+    //const salt = await dataparty_crypto.Routines.generateSalt()
+
+   
+    const salt = fromHexString('26bd99303dee4ee53342e89bd9f01a80c1fecf0d6b0c6c8eefee5a1eeeb8a0ec')
+
+
+    console.log('\t','salt', salt.toString('hex'))
+    console.log(salt)
 
     console.log(argon2)
 
