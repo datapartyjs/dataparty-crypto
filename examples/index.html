@@ -1,6 +1,8 @@
 <html>
     <head>
         <script src="libs/dataparty-crypto-browser.js"></script>
+
+        <script src="node_modules/argon2-browser/lib/argon2.js"></script>
     </head>
     <body>
 
@@ -93,9 +95,33 @@ async function main (){
     await signedMsgCopy.assertVerified(aliceCopy)
 }
 
+async function argonTest(){
+
+    console.log('Argon Test')
+
+    const salt = await dataparty_crypto.Routines.generateSalt()
+
+    console.log('\t','salt', salt)
+
+    console.log(argon2)
+
+    const key = await dataparty_crypto.Routines.createKeyFromPasswordArgon2(
+        argon2,
+        "supersecretpassword123",
+        salt
+    )
+
+    console.log(key)
+
+}
+
 main().catch(err=>{
     console.log('ERROR - we crashed')
     console.log(err)
+})
+.finally(()=>{
+    
+    return argonTest()
 })
 
         </script>

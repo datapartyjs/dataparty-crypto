@@ -122,9 +122,9 @@ export const generateSalt = async (): Buffer => {
 }
 
 /**
- * Generate private and public keys from password and salt
+ * Generate private and public keys from password and salt using pbkdf2
  */
-export const createKeyFromPassword = async (
+export const createKeyFromPasswordPbkdf2 = async (
   password: string,
   salt: Buffer,
   rounds: Number = 500000
@@ -157,6 +157,87 @@ export const createKeyFromPassword = async (
     },
     type: "nacl"
   };
+
+};
+
+/**
+ * Generate private key from password using argon2
+ * @param argon 
+ * @param password 
+ * @param salt 
+ * @param associatedData 
+ * @param timeCost 
+ * @param memoryCost 
+ * @param parallelism 
+ * @param type 
+ * @param hashLength 
+ */
+export const createKeyFromPasswordArgon2 = async (
+  argon: any,
+  password: string,
+  salt: Uint8Array,
+  associatedData: Buffer,
+  timeCost: Number = 3,
+  memoryCost: Number = 65536,
+  parallelism: Number = 4,
+  type: string = 'argon2id',
+  hashLength: Number = 64
+): IKey => {
+
+  let fullSecret = null
+
+  console.log('createKeyFromPasswordArgon2')
+
+  if( typeof argon.unloadRuntime == 'function' ){
+
+    //! brower
+    let argonType = {
+      'argon2d': argon.ArgonType.Argon2d,
+      'argon2i': argon.ArgonType.Argon2i,
+      'argon2id': argon.ArgonType.Argon2id
+    }[type]
+
+    const hashResult = await argon.hash({
+      pass: password,
+      salt,
+      ad: associatedData,
+      time: timeCost,
+      mem: memoryCost,
+      parallelism,
+      hashLen: hashLength,
+      type: argonType
+    })
+
+    console.log('hashResult', hashResult)
+
+    fullSecret = hashResult.hash
+  
+  } else {
+
+    //! node
+
+  }
+
+
+
+  const boxSecret = fullSecret.slice(0, 32)
+  const signSeed = fullSecret.slice(32)
+
+  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
+  const signKeyPair = sign.keyPair.fromSeed(signSeed);
+
+  return {
+    private: {
+      box: base64.encode(boxKeyPair.secretKey),
+      sign: base64.encode(signKeyPair.secretKey)
+    },
+    public: {
+      box: base64.encode(boxKeyPair.publicKey),
+      sign: base64.encode(signKeyPair.publicKey)
+    },
+    type: "nacl"
+  };
+
 
 };
 
