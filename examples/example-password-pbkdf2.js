@@ -13,7 +13,7 @@ async function main (){
     let startMs = Date.now()
 
 
-    let key = await dataparty_crypto.Routines.createKeyFromPassword(password, salt)
+    let key = await dataparty_crypto.Routines.createKeyFromPasswordPbkdf2(password, salt)
 
     let endMs = Date.now()
 
