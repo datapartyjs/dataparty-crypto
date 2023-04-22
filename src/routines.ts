@@ -161,16 +161,16 @@ export const createKeyFromPasswordPbkdf2 = async (
 };
 
 /**
- * Generate private key from password using argon2
- * @param argon 
+ * Generate private key from password using argon2. You must pass in the instance
+ * of argon2. We expect either `npm:argon2` or `npm:argon2-browser`.
+ * @param argon Instance of argon2 either from `npm:argon2` or `npm:argon2-browser`
  * @param password 
  * @param salt 
- * @param associatedData 
- * @param timeCost 
- * @param memoryCost 
- * @param parallelism 
- * @param type 
- * @param hashLength 
+ * @param timeCost      Defaults to 3
+ * @param memoryCost    Defaults to 64MB
+ * @param parallelism   Defaults to 4
+ * @param type          Defaults to `argon2id`
+ * @param hashLength    Defaults to 64
  */
 export const createKeyFromPasswordArgon2 = async (
   argon: any,
@@ -185,8 +185,6 @@ export const createKeyFromPasswordArgon2 = async (
 ): IKey => {
 
   let fullSecret = null
-
-  console.log('createKeyFromPasswordArgon2')
 
   if( typeof argon.unloadRuntime == 'function' ){
 
@@ -207,8 +205,6 @@ export const createKeyFromPasswordArgon2 = async (
       hashLen: hashLength,
       type: argonType
     })
-
-    console.log('hashResult', hashResult)
 
     fullSecret = hashResult.hash
   
@@ -231,15 +227,11 @@ export const createKeyFromPasswordArgon2 = async (
       type: argonType,
       raw: true
     })
-
-    console.log('hashResult', hashResult)
-
   
     fullSecret = hashResult
 
 
   }
-
 
 
   const boxSecret = fullSecret.slice(0, 32)
