@@ -14,6 +14,8 @@ dataparty cryptography
 
  * Based on [TweetNaCL](https://www.npmjs.com/package/tweetnacl)
  * Password derived keys
+   * `argon2id` - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-password-argon2.js)
+   * `pbkdf2` - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-password-pbkdf2.js) - [warning outdate](https://medium.com/@alanmeekins/wtf-is-a-kdf-a267bda53e8f)
  * Mnemonic derived keys seed phrases
 
 
@@ -87,9 +89,27 @@ console.log('verified?', verified)
 await signedMsg.assertVerified(alice)
 ```
 
+#### Password defivation
+
+```
+const password = 'super-strong-password'
+const salt = await dataparty_crypto.Routines.generateSalt() //! Salt would be read from disk after 1st run
+
+const key = await dataparty_crypto.Routines.createKeyFromPasswordArgon2(
+    argon2,
+    "supersecretpassword123",
+    salt
+)
+```
+
 # Developing
 
  * `npm build`
  * `npm watch`
  * `npm test`
 
+# Support
+
+Buy us a coffee!
+
+ * [ko-fi/dataparty](https://ko-fi.com/dataparty)
