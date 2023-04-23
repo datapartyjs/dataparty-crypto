@@ -4,8 +4,7 @@ let dataparty_crypto = require('../dist/dataparty-crypto.js')
 async function main (){
 
     const password = 'super-strong-password'
-    //const salt = await dataparty_crypto.Routines.generateSalt()
-    const salt = Buffer.from('26bd99303dee4ee53342e89bd9f01a80c1fecf0d6b0c6c8eefee5a1eeeb8a0ec', 'hex') //! Salt would be read from disk after 1st run
+    const salt = await dataparty_crypto.Routines.generateSalt() //! Salt would be read from disk after 1st run
 
     console.log('salt')
     console.log('\t', salt.toString('hex'))
