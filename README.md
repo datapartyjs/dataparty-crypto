@@ -16,7 +16,8 @@ dataparty cryptography
  * Password derived keys
    * `argon2id` - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-password-argon2.js)
    * `pbkdf2` - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-password-pbkdf2.js) - [warning outdate](https://medium.com/@alanmeekins/wtf-is-a-kdf-a267bda53e8f)
- * Mnemonic derived keys seed phrases
+ * Mnemonic derived keys seed phrases - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-seed-phrase.js)
+   * bip39 - Phrases are generated using [bip39](https://github.com/bitcoinjs/bip39).
 
 
 
@@ -89,7 +90,7 @@ console.log('verified?', verified)
 await signedMsg.assertVerified(alice)
 ```
 
-#### Password defivation
+#### Password key derivation
 
 ```
 const password = 'super-strong-password'
@@ -100,6 +101,14 @@ const key = await dataparty_crypto.Routines.createKeyFromPasswordArgon2(
     "supersecretpassword123",
     salt
 )
+```
+
+#### Mnemonic derived keys seed phrases
+
+```
+const phrase = await dataparty_crypto.Routines.generateMnemonic()
+
+let key = await dataparty_crypto.Routines.createKeyFromMnemonic(phrase)
 ```
 
 # Developing
