@@ -7,5 +7,3 @@ const dataparty_crypto = {
 
 
 module.exports = dataparty_crypto
-
-globalThis.dataparty_crypto = dataparty_crypto
