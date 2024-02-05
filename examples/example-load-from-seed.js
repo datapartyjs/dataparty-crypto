@@ -1,4 +1,4 @@
-let dataparty_crypto = require('../dist/dataparty-crypto.js')
+let dataparty_crypto = require('../dist')
 
 async function main (){
     console.log('wooo!')
