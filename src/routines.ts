@@ -10,6 +10,10 @@ import * as crypto from 'crypto'
 
 import * as bip39 from 'bip39'
 
+import { ml_kem768 } from '@noble/post-quantum/ml-kem';
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa'
+
+
 const logger = require("debug")("dataparty-crypto.Routines");
 
 const newNonce = () => randomBytes(box.nonceLength);
@@ -37,6 +41,25 @@ export const createKey = (): IKey => {
       sign: base64.encode(signKeyPair.publicKey)
     },
     type: "nacl"
+  };
+};
+
+export const createPQKey = (): IKey => {
+  const encKeyPair = ml_kem768.keygen();
+  const signKeyPair = ml_dsa65.keygen();
+
+  console.log('encKeyPair', encKeyPair)
+
+  return {
+    private: {
+      enc: base64.encode(encKeyPair.secretKey),
+      sign: base64.encode(signKeyPair.secretKey)
+    },
+    public: {
+      enc: base64.encode(encKeyPair.publicKey),
+      sign: base64.encode(signKeyPair.publicKey)
+    },
+    type: 'pq_kem768,pq_dsa65'
   };
 };
 
