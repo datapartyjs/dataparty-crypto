@@ -1,15 +1,15 @@
 
 import { Buffer } from 'buffer'
 import Message from "./message";
-import { createKey, createKeyFromMnemonic, createKeyFromPassword } from "./routines";
+import { createPQKey } from "./routines";
 
-export default class POIdentity implements IIdentity {
+export default class PQIdentity implements IIdentity {
   id: string;
   key: IKey;
 
   constructor(opts = {} as any) {
     this.id = opts.id || "";
-    this.key = !opts || !opts.key ? createKey() : opts.key;
+    this.key = !opts || !opts.key ? createPQKey() : opts.key;
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -66,22 +66,6 @@ export default class POIdentity implements IIdentity {
 
   static fromString(input: string) {
     const parsed = JSON.parse(input);
-    return new Identity(parsed);
-  }
-
-  static fromMnemonic(phrase: string) {
-    return new Identity({
-      key: createKeyFromMnemonic(phrase)
-    });
-  }
-
-  static fromPassword(
-    password: string,
-    salt: Buffer,
-    rounds?: Number
-  ) {
-    return new Identity({
-      key: createKeyFromPassword(password, salt, rounds)
-    });
+    return new PQIdentity(parsed);
   }
 }

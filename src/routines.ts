@@ -48,15 +48,13 @@ export const createPQKey = (): IKey => {
   const encKeyPair = ml_kem768.keygen();
   const signKeyPair = ml_dsa65.keygen();
 
-  console.log('encKeyPair', encKeyPair)
-
   return {
     private: {
-      enc: base64.encode(encKeyPair.secretKey),
+      box: base64.encode(encKeyPair.secretKey),
       sign: base64.encode(signKeyPair.secretKey)
     },
     public: {
-      enc: base64.encode(encKeyPair.publicKey),
+      box: base64.encode(encKeyPair.publicKey),
       sign: base64.encode(signKeyPair.publicKey)
     },
     type: 'pq_kem768,pq_dsa65'
@@ -492,7 +490,8 @@ export const signData = async function(
   return {
     timestamp,
     sender,
-    value: base64.encode(payloadSignature)
+    value: base64.encode(payloadSignature),
+    type: signer.key.type
   };
 };
 
@@ -516,6 +515,32 @@ export const verifyData = async function(
   const theirPublicSignKey = base64.decode(signer.key.public.sign)
 
   return sign.detached.verify(payloadHash, theirPayloadSignature, theirPublicSignKey)
+};
+
+export const createPQSharedSecret = async function(
+  to: IIdentity
+): Promise<IPQSharedSecret> {
+
+  const { cipherText, sharedSecret } = ml_kem768.encapsulate(base64.decode(to.key.public.box));
+  
+  return {
+    cipherText: base64.encode(cipherText),
+    sharedSecret: base64.encode(sharedSecret)
+  }
+
+};
+
+export const recoverPQSharedSecret = async function(
+  identity: IIdentity,    //! our identity
+  cipherText: string
+): Promise<IPQSharedSecret> {
+
+  const { sharedSecret } = ml_kem768.decapsulate(cipherText, base64.decode(identity.key.private.box));
+  
+  return {
+    cipherText, sharedSecret
+  }
+
 };
 
 

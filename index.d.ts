@@ -14,10 +14,16 @@ declare interface IIdentityProps {
   key: IKey;
 }
 
+declare interface IPQSharedSecret {
+  cipherText: string;
+  sharedSecret: string;
+}
+
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
   value: string;
+  type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
 declare interface IIdentityMiniProps extends IKey {
