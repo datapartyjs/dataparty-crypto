@@ -1,7 +1,7 @@
 
 import { Buffer } from 'buffer'
 import Message from "./message";
-import { createKey, createKeyFromMnemonic, createKeyFromPassword } from "./routines";
+import { createKey, createKeyFromMnemonic, createKeyFromPasswordPbkdf2 } from "./routines";
 
 export default class Identity implements IIdentity {
   id: string;
@@ -78,10 +78,10 @@ export default class Identity implements IIdentity {
   static fromPassword(
     password: string,
     salt: Buffer,
-    rounds?: Number
+    rounds?: number
   ) {
     return new Identity({
-      key: createKeyFromPassword(password, salt, rounds)
+      key: createKeyFromPasswordPbkdf2(password, salt, rounds)
     });
   }
 }

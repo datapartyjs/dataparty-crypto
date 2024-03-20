@@ -10,11 +10,14 @@ import * as crypto from 'crypto'
 
 import * as bip39 from 'bip39'
 
+
+import { x25519 } from '@noble/curves/ed25519';
 import { ml_kem768 } from '@noble/post-quantum/ml-kem';
-import { ml_dsa65 } from '@noble/post-quantum/ml-dsa'
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa';
+import { siv } from '@noble/ciphers/aes';
 
-
-const logger = require("debug")("dataparty-crypto.Routines");
+import Debug from "debug";
+const logger = Debug("dataparty-crypto.Routines");
 
 const newNonce = () => randomBytes(box.nonceLength);
 
@@ -23,6 +26,14 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
 const hkdfSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
+
+export const toHexString = (
+  byteArray : Buffer | Uint8Array
+) => {
+  return Array.from(byteArray, function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('')
+}
 
 /**
  * Generate private and public keys
@@ -45,8 +56,9 @@ export const createKey = (): IKey => {
 };
 
 export const createPQKey = (): IKey => {
+
   const encKeyPair = ml_kem768.keygen();
-  const signKeyPair = ml_dsa65.keygen();
+  const signKeyPair = ml_dsa65.keygen( null );
 
   return {
     private: {
@@ -75,7 +87,7 @@ export const getRandomBuffer = async(
 
       resolve(buf)
     })
-  })
+  }) as Promise<Buffer>
 
   return randomBuffer
 }
@@ -103,7 +115,7 @@ export const validateMnemonic = (
 export const createKeyFromMnemonic = async (
   phrase: string,
   ignoreValidation: boolean = false
-): IKey => {
+): Promise<IKey> => {
 
   const validMnemonic = validateMnemonic(phrase)
   if(!ignoreValidation && !validMnemonic){
@@ -136,7 +148,7 @@ export const createKeyFromMnemonic = async (
 /**
  * Generate salt
  */
-export const generateSalt = async (): Buffer => {
+export const generateSalt = async (): Promise<Buffer> => {
 
   let randomBuffer = await getRandomBuffer(32)
   return randomBuffer
@@ -148,8 +160,8 @@ export const generateSalt = async (): Buffer => {
 export const createKeyFromPasswordPbkdf2 = async (
   password: string,
   salt: Buffer,
-  rounds: Number = 500000
-): IKey => {
+  rounds: number = 500000
+): Promise<IKey> => {
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
@@ -158,7 +170,7 @@ export const createKeyFromPasswordPbkdf2 = async (
 
       resolve(derivedKey)
     })
-  }))
+  })) as Buffer;
 
 
   const boxSecret = fullSecret.slice(0, 32)
@@ -203,7 +215,7 @@ export const createKeyFromPasswordArgon2 = async (
   parallelism: Number = 4,
   type: string = 'argon2id',
   hashLength: Number = 64
-): IKey => {
+): Promise<IKey> => {
 
   let fullSecret = null
 
@@ -491,7 +503,7 @@ export const signData = async function(
     timestamp,
     sender,
     value: base64.encode(payloadSignature),
-    type: signer.key.type
+    //type: signer.key.type
   };
 };
 
@@ -530,15 +542,33 @@ export const createPQSharedSecret = async function(
 
 };
 
+
+export const createNaclSharedSecret = async function(
+  to: IIdentity,
+  from: IIdentity
+): Promise<INaclSharedSecret> {
+
+  const sharedSecret = x25519.getSharedSecret(
+    toHexString( base64.decode( from.key.private.box ) ),
+    toHexString( base64.decode( to.key.public.box ) )
+  )
+
+
+
+  return {
+    sharedSecret: base64.encode(sharedSecret)
+  }
+};
+
 export const recoverPQSharedSecret = async function(
   identity: IIdentity,    //! our identity
   cipherText: string
 ): Promise<IPQSharedSecret> {
 
-  const { sharedSecret } = ml_kem768.decapsulate(cipherText, base64.decode(identity.key.private.box));
+  const sharedSecret = ml_kem768.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.box));
   
   return {
-    cipherText, sharedSecret
+    cipherText, sharedSecret: base64.encode(sharedSecret)
   }
 
 };

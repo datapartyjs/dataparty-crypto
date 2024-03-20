@@ -11,13 +11,14 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
-const debug = require("debug")("test.routines");
+import Debug from "debug";
+const debug = Debug("test.routines");
 
 it("can construct Identity", () => {
   let identity = new Identity();
 
   expect(identity.key).toBeDefined();
-  expect(identity.key.type).toEqual("ecdsa");
+  expect(identity.key.type).toEqual("nacl");
   expect(identity.key.public).toBeDefined();
   expect(identity.key.private).toBeDefined();
 

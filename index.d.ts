@@ -4,7 +4,7 @@ declare interface IKeyBundle {
 }
 
 declare interface IKey {
-  type: "nacl";
+  type: string;
   private?: IKeyBundle;
   public: IKeyBundle;
 }
@@ -19,11 +19,15 @@ declare interface IPQSharedSecret {
   sharedSecret: string;
 }
 
+declare interface INaclSharedSecret {
+  sharedSecret: string;
+}
+
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
   value: string;
-  type: string;   //! type of key used for signing (nacl vs pq_dsa65)
+  //type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
 declare interface IIdentityMiniProps extends IKey {
