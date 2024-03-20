@@ -25,7 +25,7 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
-const hkdfSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
+const HkdfFullseedSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
 
 export const toHexString = (
   byteArray : Buffer | Uint8Array
@@ -58,7 +58,7 @@ export const createKey = (): IKey => {
 export const createPQKey = (): IKey => {
 
   const encKeyPair = ml_kem768.keygen();
-  const signKeyPair = ml_dsa65.keygen( null );
+  const signKeyPair = ml_dsa65.keygen( );
 
   return {
     private: {
@@ -123,7 +123,7 @@ export const createKeyFromMnemonic = async (
   }
   
   const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
-  const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 64)
+  const fullSecret = await hkdf('sha512', fullSeed, HkdfFullseedSalt, 'fullSeed', 64)
 
   const boxSecret = fullSecret.slice(0, 32)
   const signSeed = fullSecret.slice(32)
@@ -572,6 +572,30 @@ export const recoverPQSharedSecret = async function(
   }
 
 };
+
+export const createAESStream = async function(
+  naclSharedSecret: INaclSharedSecret,
+  pqSharedSecret: IPQSharedSecret,
+  salt: Uint8Array | string,
+  info: 	Uint8Array | string
+): Promise<any> {
+
+  const mergedSecret = Buffer.concat([ 
+    base64.decode(naclSharedSecret.sharedSecret),
+    base64.decode(pqSharedSecret.sharedSecret)
+  ])
+
+  console.log('merged', mergedSecret)
+
+
+  let streamKey = await hkdf('sha512', mergedSecret, salt, info, 32)
+
+  console.log('aliceHKFDSecret', base64.encode(streamKey))
+
+  const stream = siv(streamKey, randomBytes(12));
+
+  return stream;
+}
 
 
 export function extractPublicKeys (enc : string) : IKeyBundle {
