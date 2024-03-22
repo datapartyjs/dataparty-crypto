@@ -56,3 +56,24 @@ declare interface IDecryptedData {
   data: any;
   from: IIdentityProps;
 }
+
+declare interface IAESStream {
+  encrypt(plaintext: Uint8Array): Uint8Array;
+  decrypt(ciphertext: Uint8Array): Uint8Array;
+}
+
+/*
+
+declare interface IAESStreamOffer {
+  sender: IIdentity;
+  pqCipherText: string;
+  streamNounce: string;
+}
+
+
+Client      <->      Server
+get /identity   ->    |
+  |    <-   FullIdentity(root),
+
+
+*/

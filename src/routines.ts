@@ -502,8 +502,7 @@ export const signData = async function(
   return {
     timestamp,
     sender,
-    value: base64.encode(payloadSignature),
-    //type: signer.key.type
+    value: base64.encode(payloadSignature)
   };
 };
 
@@ -553,8 +552,6 @@ export const createNaclSharedSecret = async function(
     toHexString( base64.decode( to.key.public.box ) )
   )
 
-
-
   return {
     sharedSecret: base64.encode(sharedSecret)
   }
@@ -577,23 +574,18 @@ export const createAESStream = async function(
   naclSharedSecret: INaclSharedSecret,
   pqSharedSecret: IPQSharedSecret,
   salt: Uint8Array | string,
-  info: 	Uint8Array | string
-): Promise<any> {
+  info: 	Uint8Array | string,
+  streamNonce: Uint8Array
+): Promise<IAESStream> {
 
   const mergedSecret = Buffer.concat([ 
     base64.decode(naclSharedSecret.sharedSecret),
     base64.decode(pqSharedSecret.sharedSecret)
   ])
 
-  console.log('merged', mergedSecret)
+  const streamKey = await hkdf('sha512', mergedSecret, salt, info, 32)
 
-
-  let streamKey = await hkdf('sha512', mergedSecret, salt, info, 32)
-
-  console.log('aliceHKFDSecret', base64.encode(streamKey))
-
-  const stream = siv(streamKey, randomBytes(12));
-
+  const stream = siv(streamKey, streamNonce);
   return stream;
 }
 
