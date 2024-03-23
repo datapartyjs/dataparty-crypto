@@ -61,10 +61,14 @@ export const toHexString = (
  * Generate private and public keys
  */
 export const createKey = async (
-  seed: Buffer = getRandomBuffer(64),
+  seed: Buffer = null,
   postQuantum: boolean = true,
   type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
 ): Promise<IKey> => {
+
+  if(!seed){
+    seed = await getRandomBuffer(64)
+  }
 
   const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
   
@@ -81,8 +85,6 @@ export const createKey = async (
   if(postQuantum){
 
     const typeList = [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ]
-
-    console.log(typeList)
 
     if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
     if(pqsign_ml_type.indexOf('ml_dsa') != 0){ throw new Error('pqsign_ml_type must start with ml_dsa')}

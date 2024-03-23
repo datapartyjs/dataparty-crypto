@@ -14,11 +14,12 @@ const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 import Debug from "debug";
 const debug = Debug("test.routines");
 
-it("can construct Identity", () => {
+it("can construct Identity", async () => {
   let identity = new Identity();
+  await identity.initialize()
 
   expect(identity.key).toBeDefined();
-  expect(identity.key.type).toEqual("nacl");
+  expect(identity.key.type).toEqual("nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f");
   expect(identity.key.public).toBeDefined();
   expect(identity.key.private).toBeDefined();
 
@@ -36,6 +37,9 @@ it("can send encrypted message from alice to bob", async () => {
 
   const alice = new Identity({ id: "alice" });
   const bob = new Identity({ id: "bob" });
+
+  await alice.initialize()
+  await bob.initialize()
 
   const aliceMessage = new Message({
     msg: {
@@ -57,6 +61,9 @@ it("cannot send tampered message from alice to bob", async () => {
 
   const alice = new Identity({ id: "alice" });
   const bob = new Identity({ id: "bob" });
+
+  await alice.initialize()
+  await bob.initialize()
 
   const aliceMessage = new Message({
     msg: {
@@ -95,6 +102,8 @@ it("send signed message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
   const alice = new Identity({ id: "alice" });
 
+  await alice.initialize()
+
   let aliceMessage = new Message({
     msg: {
       data: TEST_STRING
@@ -117,6 +126,9 @@ it("send signed message from alice to bob", async () => {
 it("send 100 messages between alice and bob", async done => {
   const alice = new Identity({ id: "alice" });
   const bob = new Identity({ id: "bob" });
+
+  await alice.initialize()
+  await bob.initialize()
 
   for (let i = 0; i < 100; i++) {
     //debug(i)

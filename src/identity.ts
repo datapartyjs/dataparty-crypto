@@ -17,6 +17,14 @@ export default class Identity implements IIdentity {
     this.key = !opts || !opts.key ? null : opts.key;
   }
 
+  async initialize(){
+    if(this.key != null){
+      throw new Error('identity already initialized')
+    }
+
+    this.key = await createKey()
+  }
+
   async encrypt(msg, to :IIdentity) {
     const message = new Message({ msg });
     await message.encrypt(this, to.key);
