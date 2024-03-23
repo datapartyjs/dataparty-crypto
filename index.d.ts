@@ -1,10 +1,14 @@
 declare interface IKeyBundle {
   box: string;
   sign: string;
+  pqkem?: string;
+  pqsign_ml?: string;
+  pqsign_slh?: string;
 }
 
 declare interface IKey {
   type: string;
+  hash: string,
   private?: IKeyBundle;
   public: IKeyBundle;
 }
@@ -31,7 +35,9 @@ declare interface ISignature {
 }
 
 declare interface IIdentityMiniProps extends IKey {
-  id: string;
+  hash: string;
+  type: string;
+  public: IKeyBundle
 }
 
 declare interface IIdentity extends IIdentityProps {

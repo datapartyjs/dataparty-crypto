@@ -13,7 +13,7 @@ async function main (){
     let startMs = Date.now()
 
 
-    const key = await dataparty_crypto.Routines.createKeyFromPasswordArgon2(
+    const key = await dataparty_crypto.Identity.fromPasswordArgon2(
         argon2,
         "supersecretpassword123",
         salt

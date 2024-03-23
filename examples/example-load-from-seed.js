@@ -10,10 +10,18 @@ async function main (){
     console.log('phrase')
     console.log('\t', phrase)
 
-    let key = await dataparty_crypto.Routines.createKeyFromMnemonic(phrase)
+
+    let startMs = Date.now()
+    let key = await dataparty_crypto.Identity.fromMnemonic(phrase)
+
+    let endMs = Date.now()
 
     console.log('key')
     console.log('\t', key)
+
+    const deltaMs = endMs - startMs
+
+    console.log('time (ms):', (deltaMs/1000) )
 }
 
 main().catch(err=>{

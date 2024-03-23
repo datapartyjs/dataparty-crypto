@@ -12,12 +12,34 @@ import * as bip39 from 'bip39'
 
 
 import { x25519 } from '@noble/curves/ed25519';
-import { ml_kem768 } from '@noble/post-quantum/ml-kem';
-import { ml_dsa65 } from '@noble/post-quantum/ml-dsa';
+import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa';
+import { 
+  slh_dsa_sha2_128f,
+  slh_dsa_sha2_128s,
+  slh_dsa_sha2_192f,
+  slh_dsa_sha2_192s,
+  slh_dsa_sha2_256f,
+  slh_dsa_sha2_256s
+} from '@noble/post-quantum/slh-dsa';
 import { siv } from '@noble/ciphers/aes';
 
 import Debug from "debug";
 const logger = Debug("dataparty-crypto.Routines");
+
+
+const PQ_CLASSES = {
+  kem: {  ml_kem512, ml_kem768, ml_kem1024 },
+  dsa: {
+    ml_dsa44, ml_dsa65, ml_dsa87,
+    slh_dsa_sha2_128f,
+    slh_dsa_sha2_128s,
+    slh_dsa_sha2_192f,
+    slh_dsa_sha2_192s,
+    slh_dsa_sha2_256f,
+    slh_dsa_sha2_256s
+  }
+}
 
 const newNonce = () => randomBytes(box.nonceLength);
 
@@ -38,9 +60,84 @@ export const toHexString = (
 /**
  * Generate private and public keys
  */
-export const createKey = (): IKey => {
-  const boxKeyPair = box.keyPair();
-  const signKeyPair = sign.keyPair();
+export const createKey = async (
+  seed: Buffer = getRandomBuffer(64),
+  postQuantum: boolean = true,
+  type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
+): Promise<IKey> => {
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
+  
+
+  if(box_type != 'nacl'){ throw new Error('box_type must be nacl') }
+  if(sign_type != 'nacl'){ throw new Error('sign_type must be nacl') }
+
+  const boxSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'box', 32)
+  const signSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'sign', 32)
+
+  const boxKeyPair = box.keyPair.fromSecretKey( boxSeed );
+  const signKeyPair = sign.keyPair.fromSeed( signSeed );
+
+  if(postQuantum){
+
+    const typeList = [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ]
+
+    console.log(typeList)
+
+    if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+    if(pqsign_ml_type.indexOf('ml_dsa') != 0){ throw new Error('pqsign_ml_type must start with ml_dsa')}
+    if(pqsign_slh_type.indexOf('slh_dsa') != 0){ throw new Error('pqsign_slh_type must start with slh_dsa')}
+
+    let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+    let pqsignmlClass = PQ_CLASSES.dsa[ pqsign_ml_type ] || null
+    let pqsignslhClass = PQ_CLASSES.dsa[ pqsign_slh_type ] || null
+
+    if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+    if(pqsignmlClass == null){ throw new Error('invalid pqsign_ml_type') }
+    if(pqsignslhClass == null){ throw new Error('invalid pqsign_slh_type') }
+
+    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', 64)
+    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', 32)
+    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.seedLen)
+  
+  
+    const pqKemKeyPair = pqkemClass.keygen( pqKemSeed );
+    const pqSignMLKeyPair = pqsignmlClass.keygen( pqSignMLSeed );
+    const pqSignSLHKeyPair = pqsignslhClass.keygen( pqSignSLDSeed );
+    
+    const keyHash = hash(
+      Buffer.concat([
+        Buffer.from(typeList.join(',')),
+        boxKeyPair.publicKey,
+        signKeyPair.publicKey,
+        pqKemKeyPair.publicKey,
+        pqSignMLKeyPair.publicKey,
+        pqSignSLHKeyPair.publicKey
+      ])
+    )
+
+    return {
+      private: {
+        box: base64.encode(boxKeyPair.secretKey),
+        sign: base64.encode(signKeyPair.secretKey),
+        pqkem: base64.encode(pqKemKeyPair.secretKey),
+        pqsign_ml: base64.encode(pqSignMLKeyPair.secretKey),
+        pqsign_slh: base64.encode(pqSignSLHKeyPair.secretKey)
+      },
+      public: {
+        box: base64.encode(boxKeyPair.publicKey),
+        sign: base64.encode(signKeyPair.publicKey),
+        pqkem: base64.encode(pqKemKeyPair.publicKey),
+        pqsign_ml: base64.encode(pqSignMLKeyPair.publicKey),
+        pqsign_slh: base64.encode(pqSignSLHKeyPair.publicKey)
+      },
+      type: typeList.join(','),
+      hash: base64.encode(keyHash)
+    };
+
+  }
+
+  const typeList = [box_type, sign_type]
 
   return {
     private: {
@@ -51,25 +148,14 @@ export const createKey = (): IKey => {
       box: base64.encode(boxKeyPair.publicKey),
       sign: base64.encode(signKeyPair.publicKey)
     },
-    type: "nacl"
-  };
-};
-
-export const createPQKey = (): IKey => {
-
-  const encKeyPair = ml_kem768.keygen();
-  const signKeyPair = ml_dsa65.keygen( );
-
-  return {
-    private: {
-      box: base64.encode(encKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(encKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: 'pq_kem768,pq_dsa65'
+    type: typeList.join(','),
+    hash: base64.encode(hash(
+      Buffer.concat([
+        Buffer.from(typeList.join(',')),
+        boxKeyPair.publicKey,
+        signKeyPair.publicKey
+      ])
+    ))
   };
 };
 
@@ -112,10 +198,10 @@ export const validateMnemonic = (
 /**
  * Generate key from mnemonic phrase
  */
-export const createKeyFromMnemonic = async (
+export const createSeedFromMnemonic = async (
   phrase: string,
   ignoreValidation: boolean = false
-): Promise<IKey> => {
+): Promise<Buffer> => {
 
   const validMnemonic = validateMnemonic(phrase)
   if(!ignoreValidation && !validMnemonic){
@@ -123,25 +209,8 @@ export const createKeyFromMnemonic = async (
   }
   
   const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
-  const fullSecret = await hkdf('sha512', fullSeed, HkdfFullseedSalt, 'fullSeed', 64)
-
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
-
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
-
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
+  
+  return fullSeed
 
 };
 
@@ -157,11 +226,11 @@ export const generateSalt = async (): Promise<Buffer> => {
 /**
  * Generate private and public keys from password and salt using pbkdf2
  */
-export const createKeyFromPasswordPbkdf2 = async (
+export const createSeedFromPasswordPbkdf2 = async (
   password: string,
   salt: Buffer,
   rounds: number = 500000
-): Promise<IKey> => {
+): Promise<Buffer> => {
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
@@ -172,29 +241,12 @@ export const createKeyFromPasswordPbkdf2 = async (
     })
   })) as Buffer;
 
-
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
-
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
-
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
+  return fullSecret
 
 };
 
 /**
- * Generate private key from password using argon2. You must pass in the instance
+ * Generate private key seed from password using argon2. You must pass in the instance
  * of argon2. We expect either `npm:argon2` or `npm:argon2-browser`.
  * @param argon Instance of argon2 either from `npm:argon2` or `npm:argon2-browser`
  * @param password 
@@ -205,7 +257,7 @@ export const createKeyFromPasswordPbkdf2 = async (
  * @param type          Defaults to `argon2id`
  * @param hashLength    Defaults to 64
  */
-export const createKeyFromPasswordArgon2 = async (
+export const createSeedFromPasswordArgon2 = async (
   argon: any,
   password: string,
   salt: Uint8Array,
@@ -215,7 +267,7 @@ export const createKeyFromPasswordArgon2 = async (
   parallelism: Number = 4,
   type: string = 'argon2id',
   hashLength: Number = 64
-): Promise<IKey> => {
+): Promise<Buffer> => {
 
   let fullSecret = null
 
@@ -266,25 +318,7 @@ export const createKeyFromPasswordArgon2 = async (
 
   }
 
-
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
-
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
-
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
-
+  return fullSecret
 
 };
 

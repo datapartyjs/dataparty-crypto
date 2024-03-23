@@ -1,7 +1,12 @@
 
 import { Buffer } from 'buffer'
 import Message from "./message";
-import { createKey, createKeyFromMnemonic, createKeyFromPasswordPbkdf2 } from "./routines";
+import { 
+  createKey,
+  createSeedFromMnemonic,
+  createSeedFromPasswordPbkdf2,
+  createSeedFromPasswordArgon2
+} from "./routines";
 
 export default class Identity implements IIdentity {
   id: string;
@@ -9,7 +14,7 @@ export default class Identity implements IIdentity {
 
   constructor(opts = {} as any) {
     this.id = opts.id || "";
-    this.key = !opts || !opts.key ? createKey() : opts.key;
+    this.key = !opts || !opts.key ? null : opts.key;
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -46,6 +51,7 @@ export default class Identity implements IIdentity {
       id: this.id,
       key: {
         type: this.key.type,
+        hash: this.key.hash,
         public: this.key.public,
         private: !extract ? undefined : this.key.private
       }
@@ -54,9 +60,9 @@ export default class Identity implements IIdentity {
 
   toMini() {
     return {
-      id: this.id,
-      public: this.key.public,
-      type: this.key.type
+      hash: this.key.hash,
+      type: this.key.type,
+      public: this.key.public
     };
   }
 
@@ -69,19 +75,55 @@ export default class Identity implements IIdentity {
     return new Identity(parsed);
   }
 
-  static fromMnemonic(phrase: string) {
-    return new Identity({
-      key: createKeyFromMnemonic(phrase)
-    });
+  static async fromRandomSeed(){
+    const key = await createKey()
+
+    return new Identity({ key })
   }
 
-  static fromPassword(
+  static async fromMnemonic(phrase: string) {
+    const key = await createKey(
+      await createSeedFromMnemonic(phrase)
+    )
+
+    return new Identity({ key })
+  }
+
+  static async fromPasswordPbkdf2(
     password: string,
     salt: Buffer,
     rounds?: number
   ) {
-    return new Identity({
-      key: createKeyFromPasswordPbkdf2(password, salt, rounds)
-    });
+    const key = await createKey(
+      await createSeedFromPasswordPbkdf2(password, salt, rounds)
+    )
+
+    return new Identity({ key })
+  }
+
+  static async fromPasswordArgon2(
+    argon: any,
+    password: string,
+    salt?: Uint8Array,
+    timeCost?: Number,
+    memoryCost?: Number,
+    parallelism?: Number,
+    type?: string,
+    hashLength?: Number
+  ) {
+    const key = await createKey(
+      await createSeedFromPasswordArgon2(
+        argon,
+        password,
+        salt,
+        timeCost,
+        memoryCost,
+        parallelism,
+        type,
+        hashLength
+      )
+    )
+
+    return new Identity({ key })
   }
 }
