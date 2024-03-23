@@ -26,7 +26,12 @@ export default class Identity implements IIdentity {
       throw new Error('identity already initialized')
     }
 
-    this.key = await createKey()
+    if(!this.seed){ this.seed = await getRandomBuffer(32) }
+
+    let type = undefined
+    if(this.key && this.key.type){ type = this.key.type }
+
+    this.key = await createKey(this.seed, true, type)
   }
 
   async getMnemonic(){
@@ -58,19 +63,20 @@ export default class Identity implements IIdentity {
     return message.verify(this);
   }
 
+
   /**
    *
    * @param extract if true, remove private key
    */
-  toJSON(extract?: boolean) {
+  toJSON(extract: boolean = false) {
     return {
       id: this.id,
-      seed: !extract || !this.seed ? undefined : this.seed,
+      seed: extract==true ? this.seed :  undefined,
       key: {
         type: this.key.type,
         hash: this.key.hash,
         public: this.key.public,
-        private: !extract ? undefined : this.key.private
+        private: extract == true ? this.key.private : undefined
       }
     };
   }
@@ -109,6 +115,9 @@ export default class Identity implements IIdentity {
 
   static async fromMnemonic(phrase: string) {
     const seed = await createSeedFromMnemonic(phrase)
+
+    console.log('seed type', typeof seed)
+
     const key = await createKey( seed )
 
     return new Identity({ key, seed })

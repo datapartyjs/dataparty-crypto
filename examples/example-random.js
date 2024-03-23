@@ -1,25 +1,15 @@
 let dataparty_crypto = require('../dist')
 
 async function main (){
-    console.log('wooo!')
-
-    
-
-    const phrase = "current angry nest gown pistol neither loyal face into rebuild vivid autumn pledge aware damp cradle remind tornado wise glory face hip derive coast".trim()
-
-    console.log('phrase')
-    console.log('\t', phrase)
-
 
     let startMs = Date.now()
-    let key = await dataparty_crypto.Identity.fromMnemonic(phrase)
+    let key = await dataparty_crypto.Identity.random()
 
     let endMs = Date.now()
 
     console.log('key')
-    console.log('\t', key)
+    console.log('\t', key.toJSON(true))
 
-    console.log(key.seed)
 
     let recoveredPhrase = await key.getMnemonic()
 

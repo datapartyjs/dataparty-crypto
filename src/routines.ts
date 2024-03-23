@@ -67,7 +67,7 @@ export const createKey = async (
 ): Promise<IKey> => {
 
   if(!seed){
-    seed = await getRandomBuffer(64)
+    seed = await getRandomBuffer(32)
   }
 
   const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
@@ -183,11 +183,17 @@ export const getRandomBuffer = async(
 /**
  * Generate mnemonic phrase
  */
-export const generateMnemonic = async (): Promise<string> => {
+export const generateMnemonic = async (
+  seed?: Buffer
+): Promise<string> => {
 
-  let randomBuffer = await getRandomBuffer(16)
+  if(!seed){
+    seed = await getRandomBuffer(32)
+  }
+
+  console.log('seed', seed)
   
-  return bip39.entropyToMnemonic(randomBuffer)
+  return bip39.entropyToMnemonic(seed)
 }
 
 export const validateMnemonic = (
@@ -210,9 +216,12 @@ export const createSeedFromMnemonic = async (
     throw new Error('invalid mnemonic phrase')
   }
   
-  const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
-  
-  return fullSeed
+  const fullSeed = await bip39.mnemonicToEntropy(phrase);  //! 32bytes
+
+  console.log('typeof fullseed', typeof fullSeed)
+  console.log('fullseed', fullSeed)
+
+  return Buffer.from(fullSeed, 'hex')
 
 };
 
@@ -244,7 +253,7 @@ export const createSeedFromPasswordPbkdf2 = async (
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
-    crypto.pbkdf2(password, salt, rounds, 64, 'sha512', (err, derivedKey)=>{
+    crypto.pbkdf2(password, salt, rounds, 32, 'sha512', (err, derivedKey)=>{
       if(err){ return reject(err) }
 
       resolve(derivedKey)
@@ -276,7 +285,7 @@ export const createSeedFromPasswordArgon2 = async (
   memoryCost: Number = 65536,
   parallelism: Number = 4,
   type: string = 'argon2id',
-  hashLength: Number = 64
+  hashLength: Number = 32
 ): Promise<Buffer> => {
 
   let fullSecret = null
