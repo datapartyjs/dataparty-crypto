@@ -47,7 +47,7 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
-const HkdfFullseedSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
+const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
 
 export const toHexString = (
   byteArray : Buffer | Uint8Array
