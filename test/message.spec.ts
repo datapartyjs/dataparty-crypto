@@ -15,8 +15,7 @@ import Debug from "debug";
 const debug = Debug("test.routines");
 
 it("can construct Identity", async () => {
-  let identity = new Identity();
-  await identity.initialize()
+  let identity = await Identity.random();
 
   expect(identity.key).toBeDefined();
   expect(identity.key.type).toEqual("nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f");
@@ -35,11 +34,8 @@ it("can construct Identity", async () => {
 it("can send encrypted message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
 
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
-
-  await alice.initialize()
-  await bob.initialize()
+  const alice = await Identity.random({ id: "alice" });
+  const bob = await Identity.random({ id: "bob" });
 
   const aliceMessage = new Message({
     msg: {
@@ -59,11 +55,9 @@ it("can send encrypted message from alice to bob", async () => {
 it("cannot send tampered message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
 
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
+  const alice = await Identity.random({ id: "alice" });
+  const bob = await Identity.random({ id: "bob" });
 
-  await alice.initialize()
-  await bob.initialize()
 
   const aliceMessage = new Message({
     msg: {
@@ -100,9 +94,8 @@ it("cannot send tampered message from alice to bob", async () => {
 
 it("send signed message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
-  const alice = new Identity({ id: "alice" });
+  const alice = await Identity.random({ id: "alice" });
 
-  await alice.initialize()
 
   let aliceMessage = new Message({
     msg: {
@@ -124,11 +117,8 @@ it("send signed message from alice to bob", async () => {
 });
 
 it("send 100 messages between alice and bob", async done => {
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
-
-  await alice.initialize()
-  await bob.initialize()
+  const alice = await Identity.random({ id: "alice" });
+  const bob = await Identity.random({ id: "bob" });
 
   for (let i = 0; i < 100; i++) {
     //debug(i)

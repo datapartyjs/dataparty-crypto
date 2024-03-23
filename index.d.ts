@@ -16,6 +16,7 @@ declare interface IKey {
 declare interface IIdentityProps {
   id: string;
   key: IKey;
+  
 }
 
 declare interface IPQSharedSecret {
@@ -41,6 +42,7 @@ declare interface IIdentityMiniProps extends IKey {
 }
 
 declare interface IIdentity extends IIdentityProps {
+  seed?: Buffer;
   toJSON(extract?: boolean): IIdentityProps;
 
   toMini(): IIdentityMiniProps;

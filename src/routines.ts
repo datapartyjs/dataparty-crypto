@@ -216,6 +216,14 @@ export const createSeedFromMnemonic = async (
 
 };
 
+export const getMnemonicFromSeed = async(
+  seed: Buffer
+): Promise<string> => {
+
+  return bip39.entropyToMnemonic(seed)
+}
+
+
 /**
  * Generate salt
  */

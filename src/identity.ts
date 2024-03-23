@@ -1,7 +1,9 @@
 
 import { Buffer } from 'buffer'
 import Message from "./message";
-import { 
+import {
+  getRandomBuffer,
+  getMnemonicFromSeed,
   createKey,
   createSeedFromMnemonic,
   createSeedFromPasswordPbkdf2,
@@ -11,10 +13,12 @@ import {
 export default class Identity implements IIdentity {
   id: string;
   key: IKey;
+  seed?: Buffer;
 
   constructor(opts = {} as any) {
     this.id = opts.id || "";
     this.key = !opts || !opts.key ? null : opts.key;
+    this.seed = !opts || !opts.seed ? null : opts.seed;
   }
 
   async initialize(){
@@ -23,6 +27,10 @@ export default class Identity implements IIdentity {
     }
 
     this.key = await createKey()
+  }
+
+  async getMnemonic(){
+    return await getMnemonicFromSeed( this.seed )
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -57,6 +65,7 @@ export default class Identity implements IIdentity {
   toJSON(extract?: boolean) {
     return {
       id: this.id,
+      seed: !extract || !this.seed ? undefined : this.seed,
       key: {
         type: this.key.type,
         hash: this.key.hash,
@@ -78,23 +87,31 @@ export default class Identity implements IIdentity {
     return JSON.stringify(this.toJSON());
   }
 
+  static async random(opts = {} as any){
+    const identity = new Identity(opts)
+
+    await identity.initialize()
+
+    return identity
+  }
+
   static fromString(input: string) {
     const parsed = JSON.parse(input);
     return new Identity(parsed);
   }
 
   static async fromRandomSeed(){
-    const key = await createKey()
+    const seed = await getRandomBuffer(64)
+    const key = await createKey(seed)
 
-    return new Identity({ key })
+    return new Identity({ key, seed })
   }
 
   static async fromMnemonic(phrase: string) {
-    const key = await createKey(
-      await createSeedFromMnemonic(phrase)
-    )
+    const seed = await createSeedFromMnemonic(phrase)
+    const key = await createKey( seed )
 
-    return new Identity({ key })
+    return new Identity({ key, seed })
   }
 
   static async fromPasswordPbkdf2(
@@ -102,11 +119,10 @@ export default class Identity implements IIdentity {
     salt: Buffer,
     rounds?: number
   ) {
-    const key = await createKey(
-      await createSeedFromPasswordPbkdf2(password, salt, rounds)
-    )
+    const seed = await createSeedFromPasswordPbkdf2(password, salt, rounds)
+    const key = await createKey( seed )
 
-    return new Identity({ key })
+    return new Identity({ key, seed })
   }
 
   static async fromPasswordArgon2(
@@ -119,19 +135,19 @@ export default class Identity implements IIdentity {
     type?: string,
     hashLength?: Number
   ) {
-    const key = await createKey(
-      await createSeedFromPasswordArgon2(
-        argon,
-        password,
-        salt,
-        timeCost,
-        memoryCost,
-        parallelism,
-        type,
-        hashLength
-      )
+    const seed = await createSeedFromPasswordArgon2(
+      argon,
+      password,
+      salt,
+      timeCost,
+      memoryCost,
+      parallelism,
+      type,
+      hashLength
     )
 
-    return new Identity({ key })
+    const key = await createKey( seed )
+
+    return new Identity({ key, seed })
   }
 }
