@@ -22,7 +22,7 @@ export default class Identity implements IIdentity {
   }
 
   async initialize(){
-    if(this.key != null){
+    if(this.key != null && this.key.private){
       throw new Error('identity already initialized')
     }
 
