@@ -3,18 +3,17 @@ let dataparty_crypto = require('../dist')
 async function main (){
     console.log('wooo!')
 
-    const aliceKey = new dataparty_crypto.Identity()
-    const bobKey = new dataparty_crypto.Identity()
+    const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed()
+    const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed()
 
-    const bobPublicKey = dataparty_crypto.Identity.fromString( JSON.stringify( bobKey.toJSON() ) )
-
+    const bobPublicKey = bobFullKey.publicIdentity()
     console.log('pq aliceKey')
-    console.log('\t', aliceKey)
+    console.log('\t', aliceFullKey)
 
     console.log('bob public key')
     console.log(bobPublicKey)
 
-    const aliceToBobSecret = await dataparty_crypto.Routines.createNaclSharedSecret(bobPublicKey, aliceKey)
+    const aliceToBobSecret = await dataparty_crypto.Routines.createNaclSharedSecret(bobPublicKey, aliceFullKey)
 
     console.log('alieToBobSecret', aliceToBobSecret)
 }
