@@ -597,18 +597,6 @@ export const verifyData = async function(
   return sign.detached.verify(payloadHash, theirPayloadSignature, theirPublicSignKey)
 };
 
-export const createPQSharedSecret = async function(
-  to: IIdentity
-): Promise<IPQSharedSecret> {
-
-  const { cipherText, sharedSecret } = ml_kem768.encapsulate(base64.decode(to.key.public.box));
-  
-  return {
-    cipherText: base64.encode(cipherText),
-    sharedSecret: base64.encode(sharedSecret)
-  }
-
-};
 
 
 export const createNaclSharedSecret = async function(
@@ -626,6 +614,30 @@ export const createNaclSharedSecret = async function(
   }
 };
 
+export const createPQSharedSecret = async function(
+  to: IIdentity
+): Promise<IPQSharedSecret> {
+
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
+  
+
+  if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+
+  let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+
+  if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+
+
+  const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.box));
+  
+  return {
+    cipherText: base64.encode(cipherText),
+    sharedSecret: base64.encode(sharedSecret)
+  }
+
+};
+
 export const recoverPQSharedSecret = async function(
   identity: IIdentity,    //! our identity
   cipherText: string
@@ -640,19 +652,33 @@ export const recoverPQSharedSecret = async function(
 };
 
 export const createAESStream = async function(
-  naclSharedSecret: INaclSharedSecret,
-  pqSharedSecret: IPQSharedSecret,
+  naclSharedSecret: INaclSharedSecret=null,
+  pqSharedSecret: IPQSharedSecret=null,
   salt: Uint8Array | string,
   info: 	Uint8Array | string,
   streamNonce: Uint8Array
 ): Promise<IAESStream> {
 
-  const mergedSecret = Buffer.concat([ 
-    base64.decode(naclSharedSecret.sharedSecret),
-    base64.decode(pqSharedSecret.sharedSecret)
-  ])
+  let fullSecret = null
 
-  const streamKey = await hkdf('sha512', mergedSecret, salt, info, 32)
+  if(naclSharedSecret && pqSharedSecret){
+  
+    fullSecret = Buffer.concat([ 
+      base64.decode(naclSharedSecret.sharedSecret),
+      base64.decode(pqSharedSecret.sharedSecret)
+    ])
+
+  } else if (naclSharedSecret && !pqSharedSecret){
+
+    fullSecret = base64.decode(naclSharedSecret.sharedSecret)
+
+  } else if (!naclSharedSecret && pqSharedSecret){
+
+    fullSecret = base64.decode(pqSharedSecret.sharedSecret)
+    
+  }
+
+  const streamKey = await hkdf('sha512', fullSecret, salt, info, 32)
 
   const stream = siv(streamKey, streamNonce);
   return stream;
