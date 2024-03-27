@@ -305,7 +305,6 @@ export const createSeedFromPasswordPbkdf2 = async (
  * @param memoryCost    Defaults to 64MB
  * @param parallelism   Defaults to 4
  * @param type          Defaults to `argon2id`
- * @param hashLength    Defaults to 64
  */
 export const createSeedFromPasswordArgon2 = async (
   argon: any,
@@ -315,8 +314,7 @@ export const createSeedFromPasswordArgon2 = async (
   timeCost: Number = 3,
   memoryCost: Number = 64*1024,
   parallelism: Number = 4,
-  type: string = 'argon2id',
-  hashLength: Number = 64
+  type: string = 'argon2id'
 ): Promise<Buffer> => {
 
   let fullSecret = null
@@ -337,7 +335,7 @@ export const createSeedFromPasswordArgon2 = async (
       time: timeCost,
       mem: memoryCost,
       parallelism,
-      hashLen: hashLength,
+      hashLen: 64,
       type: argonType
     })
 
@@ -358,7 +356,7 @@ export const createSeedFromPasswordArgon2 = async (
       timeCost,
       memoryCost,
       parallelism,
-      hashLength,
+      hashLength:64,
       type: argonType,
       raw: true
     })
