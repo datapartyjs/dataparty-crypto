@@ -25,11 +25,6 @@ async function main (){
     console.log('key')
     console.log(key)
 
-
-    let recoveredPhrase = await key.getMnemonic()
-
-    console.log('recovered phrase - ', recoveredPhrase)
-
     const deltaMs = endMs - startMs
 
     console.log('time (ms):', (deltaMs/1000) )

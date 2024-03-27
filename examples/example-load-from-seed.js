@@ -1,3 +1,4 @@
+const argon2 = require('argon2')
 let dataparty_crypto = require('../dist')
 
 async function main (){
@@ -5,6 +6,7 @@ async function main (){
 
     
 
+    const password = ''
     const phrase = "current angry nest gown pistol neither loyal face into rebuild vivid autumn pledge aware damp cradle remind tornado wise glory face hip derive coast".trim()
 
     console.log('phrase')
@@ -12,7 +14,7 @@ async function main (){
 
 
     let startMs = Date.now()
-    let key = await dataparty_crypto.Identity.fromMnemonic(phrase)
+    let key = await dataparty_crypto.Identity.fromMnemonic(phrase,password, argon2)
 
     let endMs = Date.now()
 
@@ -21,9 +23,6 @@ async function main (){
 
     console.log(key.seed)
 
-    let recoveredPhrase = await key.getMnemonic()
-
-    console.log('recovered phrase - ', recoveredPhrase)
 
     const deltaMs = endMs - startMs
 

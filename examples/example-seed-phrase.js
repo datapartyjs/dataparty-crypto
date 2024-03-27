@@ -1,3 +1,4 @@
+const argon2 = require('argon2')
 let dataparty_crypto = require('../dist')
 
 async function main (){
@@ -7,8 +8,17 @@ async function main (){
 
 
     let startMs = Date.now()
-    const phrase = await dataparty_crypto.Routines.generateMnemonic()
-    let key = await dataparty_crypto.Identity.fromMnemonic(phrase)
+
+    const password = 'super strong password'
+    const entropy = await dataparty_crypto.Routines.getRandomBuffer(32)
+    const phrase = await dataparty_crypto.Routines.entropyToMnemonic(entropy)
+    const seed = await dataparty_crypto.Routines.createSeedFromMnemonic(
+        phrase,
+        password,
+        argon2
+    )
+
+    let key = await dataparty_crypto.Identity.fromMnemonic(phrase,password, argon2)
 
     let endMs = Date.now()
 
@@ -19,10 +29,6 @@ async function main (){
     console.log('key')
     console.log('\t', key)
 
-
-    let recoveredPhrase = await key.getMnemonic()
-
-    console.log('recovered phrase - ', recoveredPhrase)
 
     const deltaMs = endMs - startMs
 
