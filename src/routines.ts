@@ -619,7 +619,7 @@ export const createPQSharedSecret = async function(
 ): Promise<IPQSharedSecret> {
 
 
-  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = to.key.type.split(',')
   
 
   if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
@@ -627,7 +627,6 @@ export const createPQSharedSecret = async function(
   let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
 
   if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
-
 
   const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.box));
   
@@ -643,7 +642,17 @@ export const recoverPQSharedSecret = async function(
   cipherText: string
 ): Promise<IPQSharedSecret> {
 
-  const sharedSecret = ml_kem768.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.box));
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = identity.key.type.split(',')
+  
+
+  if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+
+  let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+
+  if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+
+  const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.box));
   
   return {
     cipherText, sharedSecret: base64.encode(sharedSecret)
