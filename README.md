@@ -15,10 +15,10 @@ dataparty cryptography
  * GPU Resistant
  * Post-Quantum Ready
  * Identity contains:
-   * TweetNaCL
-   * Crystal-Kybers KEM
+   * TweetNaCL Box & Sign Keys
+   * Crystal-Kybers KEM Key
    * Dilithium Signing Key
-   * SPHINCS+
+   * SPHINCS+ Singing Key
  * Mnemonic derived keys seed phrases - [See example](https://github.com/datapartyjs/dataparty-crypto/blob/master/examples/example-seed-phrase.js)
    * bip39 - Phrases are generated using [bip39](https://github.com/bitcoinjs/bip39).
    * pharses are combined with a password using `argon2` instead of the typical `pbkdf2`
