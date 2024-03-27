@@ -53,6 +53,9 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
+const AES_OFFER_INFO = 'aesoffer'
+const AES_OFFER_SALT = base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PSs=')
+
 const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
 
 export const toHexString = (
@@ -61,6 +64,24 @@ export const toHexString = (
   return Array.from(byteArray, function(byte) {
     return ('0' + (byte & 0xFF).toString(16)).slice(-2);
   }).join('')
+}
+
+export const reach = (obj, path, defaultVal)=>{
+  var tokens = path.split('.')
+  var val = obj;
+
+  try{
+    for(var i=0; i<tokens.length; i++){
+      val = val[tokens[i]]
+    }
+
+    if(val == undefined){ val = defaultVal }
+  }
+  catch(excp){
+    val = (defaultVal != undefined) ? defaultVal : null
+  }
+
+  return val;
 }
 
 /**
@@ -663,9 +684,9 @@ export const recoverPQSharedSecret = async function(
 export const createAESStream = async function(
   naclSharedSecret: INaclSharedSecret=null,
   pqSharedSecret: IPQSharedSecret=null,
-  salt: Uint8Array | string,
-  info: 	Uint8Array | string,
-  streamNonce: Uint8Array
+  streamNonce: Uint8Array,
+  info: 	Uint8Array | string=AES_OFFER_INFO,
+  salt: Uint8Array | string=AES_OFFER_SALT,
 ): Promise<IAESStream> {
 
   let fullSecret = null

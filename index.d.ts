@@ -19,15 +19,6 @@ declare interface IIdentityProps {
   
 }
 
-declare interface IPQSharedSecret {
-  cipherText: string;
-  sharedSecret: string;
-}
-
-declare interface INaclSharedSecret {
-  sharedSecret: string;
-}
-
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
@@ -43,8 +34,14 @@ declare interface IIdentityMiniProps extends IKey {
 
 declare interface IIdentity extends IIdentityProps {
   seed?: Buffer;
-  toJSON(extract?: boolean): IIdentityProps;
 
+  assertHasPostQuatumKEM(): void;
+  hasPostQuatumKEM(): boolean;
+
+  createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
+  recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
+
+  toJSON(extract?: boolean): IIdentityProps;
   toMini(): IIdentityMiniProps;
 }
 
@@ -65,20 +62,28 @@ declare interface IDecryptedData {
   from: IIdentityProps;
 }
 
+declare interface IPQSharedSecret {
+  cipherText: string;
+  sharedSecret: string;
+}
+
+declare interface INaclSharedSecret {
+  sharedSecret: string;
+}
+
 declare interface IAESStream {
   encrypt(plaintext: Uint8Array): Uint8Array;
   decrypt(ciphertext: Uint8Array): Uint8Array;
 }
 
-/*
-
 declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
-  streamNounce: string;
+  streamNonce: string;
+  stream?: IAESStream;
 }
 
-
+/*
 Client      <->      Server
 get /identity   ->    |
   |    <-   FullIdentity(root),
