@@ -32,7 +32,7 @@ async function main (){
     console.log('entropy len=', entropy.length , entropy)
     console.log('phrase len=', phrase.length, phrase)
     console.log('seed1 len=', seed.length, seed)
-    //console.log('seed2 len=', seed.length, seed2)
+    console.log('seed2 len=', seed.length, seed2)
 
     const deltaMs = endMs - startMs
 

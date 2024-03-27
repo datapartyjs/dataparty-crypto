@@ -2,7 +2,6 @@ import { Buffer } from 'buffer'
 import Message from "./message";
 import {
   getRandomBuffer,
-  getMnemonicFromSeed,
   createKey,
   createSeedFromMnemonic,
   createSeedFromPasswordPbkdf2,
@@ -93,32 +92,34 @@ export default class Identity implements IIdentity {
     return new Identity(parsed);
   }
 
-  static async fromRandomSeed(){
+  static async fromRandomSeed(opts: any={}){
     const seed = await getRandomBuffer(64)
     const key = await createKey(seed)
 
-    return new Identity({ key, seed })
+    return new Identity({ key, seed, ...opts })
   }
 
-  static async fromMnemonic(phrase: string, password: string, argon2: any) {
+  static async fromMnemonic(phrase: string, password: string, argon2: any, opts: any={}) {
+
     const seed = await createSeedFromMnemonic(phrase, password, argon2)
 
     console.log('seed type', typeof seed)
 
     const key = await createKey( seed )
 
-    return new Identity({ key, seed })
+    return new Identity({ key, seed, ...opts })
   }
 
   static async fromPasswordPbkdf2(
     password: string,
     salt: Buffer,
-    rounds?: number
+    rounds?: number,
+    opts: any={}
   ) {
     const seed = await createSeedFromPasswordPbkdf2(password, salt, rounds)
     const key = await createKey( seed )
 
-    return new Identity({ key, seed })
+    return new Identity({ key, seed, ...opts })
   }
 
   static async fromPasswordArgon2(
@@ -129,7 +130,8 @@ export default class Identity implements IIdentity {
     memoryCost?: Number,
     parallelism?: Number,
     type?: string,
-    hashLength?: Number
+    hashLength?: Number,
+    opts: any={}
   ) {
     const seed = await createSeedFromPasswordArgon2(
       argon,
@@ -144,6 +146,6 @@ export default class Identity implements IIdentity {
 
     const key = await createKey( seed )
 
-    return new Identity({ key, seed })
+    return new Identity({ key, seed, ...opts })
   }
 }
