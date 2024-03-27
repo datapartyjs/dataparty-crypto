@@ -11,13 +11,14 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
-const debug = require("debug")("test.routines");
+import Debug from "debug";
+const debug = Debug("test.routines");
 
-it("can construct Identity", () => {
-  let identity = new Identity();
+it("can construct Identity", async () => {
+  let identity = await Identity.fromRandomSeed();
 
   expect(identity.key).toBeDefined();
-  expect(identity.key.type).toEqual("ecdsa");
+  expect(identity.key.type).toEqual("nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f");
   expect(identity.key.public).toBeDefined();
   expect(identity.key.private).toBeDefined();
 
@@ -33,8 +34,8 @@ it("can construct Identity", () => {
 it("can send encrypted message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
 
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
+  const alice = await Identity.fromRandomSeed({ id: "alice" });
+  const bob = await Identity.fromRandomSeed({ id: "bob" });
 
   const aliceMessage = new Message({
     msg: {
@@ -54,8 +55,9 @@ it("can send encrypted message from alice to bob", async () => {
 it("cannot send tampered message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
 
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
+  const alice = await Identity.fromRandomSeed({ id: "alice" });
+  const bob = await Identity.fromRandomSeed({ id: "bob" });
+
 
   const aliceMessage = new Message({
     msg: {
@@ -92,7 +94,8 @@ it("cannot send tampered message from alice to bob", async () => {
 
 it("send signed message from alice to bob", async () => {
   const TEST_STRING = "From Alice to Bob";
-  const alice = new Identity({ id: "alice" });
+  const alice = await Identity.fromRandomSeed({ id: "alice" });
+
 
   let aliceMessage = new Message({
     msg: {
@@ -114,8 +117,8 @@ it("send signed message from alice to bob", async () => {
 });
 
 it("send 100 messages between alice and bob", async done => {
-  const alice = new Identity({ id: "alice" });
-  const bob = new Identity({ id: "bob" });
+  const alice = await Identity.fromRandomSeed({ id: "alice" });
+  const bob = await Identity.fromRandomSeed({ id: "bob" });
 
   for (let i = 0; i < 100; i++) {
     //debug(i)

@@ -10,7 +10,36 @@ import * as crypto from 'crypto'
 
 import * as bip39 from 'bip39'
 
-const logger = require("debug")("dataparty-crypto.Routines");
+
+import { x25519 } from '@noble/curves/ed25519';
+import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa';
+import { 
+  slh_dsa_sha2_128f,
+  slh_dsa_sha2_128s,
+  slh_dsa_sha2_192f,
+  slh_dsa_sha2_192s,
+  slh_dsa_sha2_256f,
+  slh_dsa_sha2_256s
+} from '@noble/post-quantum/slh-dsa';
+import { siv } from '@noble/ciphers/aes';
+
+import Debug from "debug";
+const logger = Debug("dataparty-crypto.Routines");
+
+
+const PQ_CLASSES = {
+  kem: {  ml_kem512, ml_kem768, ml_kem1024 },
+  dsa: {
+    ml_dsa44, ml_dsa65, ml_dsa87,
+    slh_dsa_sha2_128f,
+    slh_dsa_sha2_128s,
+    slh_dsa_sha2_192f,
+    slh_dsa_sha2_192s,
+    slh_dsa_sha2_256f,
+    slh_dsa_sha2_256s
+  }
+}
 
 const newNonce = () => randomBytes(box.nonceLength);
 
@@ -18,14 +47,120 @@ const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
 
-const hkdfSalt = "ain't no party like a dataparty party. cu's dataparty party don't stop!"
+const AES_OFFER_INFO = 'aesoffer'
+const AES_OFFER_SALT = base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PSs=')
+
+const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
+
+export const toHexString = (
+  byteArray : Buffer | Uint8Array
+) => {
+  return Array.from(byteArray, function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('')
+}
+
+export const reach = (obj, path, defaultVal)=>{
+  var tokens = path.split('.')
+  var val = obj;
+
+  try{
+    for(var i=0; i<tokens.length; i++){
+      val = val[tokens[i]]
+    }
+
+    if(val == undefined){ val = defaultVal }
+  }
+  catch(excp){
+    val = (defaultVal != undefined) ? defaultVal : null
+  }
+
+  return val;
+}
 
 /**
  * Generate private and public keys
  */
-export const createKey = (): IKey => {
-  const boxKeyPair = box.keyPair();
-  const signKeyPair = sign.keyPair();
+export const createKey = async (
+  seed: Buffer,
+  postQuantum: boolean = true,
+  type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
+): Promise<IKey> => {
+
+  if(seed.length != 64){
+    throw new Error('seed expected to be 64 bytes')
+  }
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
+  
+
+  if(box_type != 'nacl'){ throw new Error('box_type must be nacl') }
+  if(sign_type != 'nacl'){ throw new Error('sign_type must be nacl') }
+
+  const boxSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'box', 32)
+  const signSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'sign', 32)
+
+  const boxKeyPair = box.keyPair.fromSecretKey( boxSeed );
+  const signKeyPair = sign.keyPair.fromSeed( signSeed );
+
+  if(postQuantum){
+
+    const typeList = [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ]
+
+    if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+    if(pqsign_ml_type.indexOf('ml_dsa') != 0){ throw new Error('pqsign_ml_type must start with ml_dsa')}
+    if(pqsign_slh_type.indexOf('slh_dsa') != 0){ throw new Error('pqsign_slh_type must start with slh_dsa')}
+
+    let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+    let pqsignmlClass = PQ_CLASSES.dsa[ pqsign_ml_type ] || null
+    let pqsignslhClass = PQ_CLASSES.dsa[ pqsign_slh_type ] || null
+
+    if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+    if(pqsignmlClass == null){ throw new Error('invalid pqsign_ml_type') }
+    if(pqsignslhClass == null){ throw new Error('invalid pqsign_slh_type') }
+
+    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', 64)
+    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', 32)
+    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.seedLen)
+  
+  
+    const pqKemKeyPair = pqkemClass.keygen( pqKemSeed );
+    const pqSignMLKeyPair = pqsignmlClass.keygen( pqSignMLSeed );
+    const pqSignSLHKeyPair = pqsignslhClass.keygen( pqSignSLDSeed );
+    
+    const keyHash = hash(
+      Buffer.concat([
+        Buffer.from(typeList.join(',')),
+        boxKeyPair.publicKey,
+        signKeyPair.publicKey,
+        pqKemKeyPair.publicKey,
+        pqSignMLKeyPair.publicKey,
+        pqSignSLHKeyPair.publicKey
+      ])
+    )
+
+    return {
+      private: {
+        box: base64.encode(boxKeyPair.secretKey),
+        sign: base64.encode(signKeyPair.secretKey),
+        pqkem: base64.encode(pqKemKeyPair.secretKey),
+        pqsign_ml: base64.encode(pqSignMLKeyPair.secretKey),
+        pqsign_slh: base64.encode(pqSignSLHKeyPair.secretKey)
+      },
+      public: {
+        box: base64.encode(boxKeyPair.publicKey),
+        sign: base64.encode(signKeyPair.publicKey),
+        pqkem: base64.encode(pqKemKeyPair.publicKey),
+        pqsign_ml: base64.encode(pqSignMLKeyPair.publicKey),
+        pqsign_slh: base64.encode(pqSignSLHKeyPair.publicKey)
+      },
+      type: typeList.join(','),
+      hash: base64.encode(keyHash)
+    };
+
+  }
+
+  const typeList = [box_type, sign_type]
 
   return {
     private: {
@@ -36,7 +171,14 @@ export const createKey = (): IKey => {
       box: base64.encode(boxKeyPair.publicKey),
       sign: base64.encode(signKeyPair.publicKey)
     },
-    type: "nacl"
+    type: typeList.join(','),
+    hash: base64.encode(hash(
+      Buffer.concat([
+        Buffer.from(typeList.join(',')),
+        boxKeyPair.publicKey,
+        signKeyPair.publicKey
+      ])
+    ))
   };
 };
 
@@ -54,7 +196,7 @@ export const getRandomBuffer = async(
 
       resolve(buf)
     })
-  })
+  }) as Promise<Buffer>
 
   return randomBuffer
 }
@@ -62,11 +204,15 @@ export const getRandomBuffer = async(
 /**
  * Generate mnemonic phrase
  */
-export const generateMnemonic = async (): Promise<string> => {
+export const generateMnemonic = async (
+  seed?: Buffer
+): Promise<string> => {
 
-  let randomBuffer = await getRandomBuffer(16)
+  if(!seed){
+    seed = await getRandomBuffer(32)
+  }
   
-  return bip39.entropyToMnemonic(randomBuffer)
+  return bip39.entropyToMnemonic(seed)
 }
 
 export const validateMnemonic = (
@@ -79,43 +225,49 @@ export const validateMnemonic = (
 /**
  * Generate key from mnemonic phrase
  */
-export const createKeyFromMnemonic = async (
+export const createSeedFromMnemonic = async (
   phrase: string,
+  password: string,
+  argon2: any,
   ignoreValidation: boolean = false
-): IKey => {
+): Promise<Buffer> => {
 
   const validMnemonic = validateMnemonic(phrase)
   if(!ignoreValidation && !validMnemonic){
     throw new Error('invalid mnemonic phrase')
   }
   
-  const fullSeed = await bip39.mnemonicToSeed(phrase);  //! 64bytes
-  const fullSecret = await hkdf('sha512', fullSeed, hkdfSalt, 'fullSeed', 64)
+  const entropy = await bip39.mnemonicToEntropy(phrase)
+  const normalizedPhrase = bip39.entropyToMnemonic(entropy)
 
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
+  if(!password || password.length < 1){
+    password = '00000000'
+  }
 
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
+  const normalizedPassword = password.normalize('NFKD')
 
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
+  const fullSeed = await createSeedFromPasswordArgon2(
+    argon2,
+    normalizedPhrase,
+    Buffer.from(normalizedPassword, 'utf8')
+  )
+
+  return fullSeed
 
 };
+
+export const entropyToMnemonic = async(
+  entropy: Buffer
+): Promise<string> => {
+
+  return bip39.entropyToMnemonic(entropy)
+}
+
 
 /**
  * Generate salt
  */
-export const generateSalt = async (): Buffer => {
+export const generateSalt = async (): Promise<Buffer> => {
 
   let randomBuffer = await getRandomBuffer(32)
   return randomBuffer
@@ -124,11 +276,11 @@ export const generateSalt = async (): Buffer => {
 /**
  * Generate private and public keys from password and salt using pbkdf2
  */
-export const createKeyFromPasswordPbkdf2 = async (
+export const createSeedFromPasswordPbkdf2 = async (
   password: string,
   salt: Buffer,
-  rounds: Number = 500000
-): IKey => {
+  rounds: number = 500000
+): Promise<Buffer> => {
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
@@ -137,31 +289,14 @@ export const createKeyFromPasswordPbkdf2 = async (
 
       resolve(derivedKey)
     })
-  }))
+  })) as Buffer;
 
-
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
-
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
-
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
+  return fullSecret
 
 };
 
 /**
- * Generate private key from password using argon2. You must pass in the instance
+ * Generate private key seed from password using argon2. You must pass in the instance
  * of argon2. We expect either `npm:argon2` or `npm:argon2-browser`.
  * @param argon Instance of argon2 either from `npm:argon2` or `npm:argon2-browser`
  * @param password 
@@ -170,19 +305,17 @@ export const createKeyFromPasswordPbkdf2 = async (
  * @param memoryCost    Defaults to 64MB
  * @param parallelism   Defaults to 4
  * @param type          Defaults to `argon2id`
- * @param hashLength    Defaults to 64
  */
-export const createKeyFromPasswordArgon2 = async (
+export const createSeedFromPasswordArgon2 = async (
   argon: any,
   password: string,
   salt: Uint8Array,
   //associatedData: Buffer,
   timeCost: Number = 3,
-  memoryCost: Number = 65536,
+  memoryCost: Number = 64*1024,
   parallelism: Number = 4,
-  type: string = 'argon2id',
-  hashLength: Number = 64
-): IKey => {
+  type: string = 'argon2id'
+): Promise<Buffer> => {
 
   let fullSecret = null
 
@@ -202,7 +335,7 @@ export const createKeyFromPasswordArgon2 = async (
       time: timeCost,
       mem: memoryCost,
       parallelism,
-      hashLen: hashLength,
+      hashLen: 64,
       type: argonType
     })
 
@@ -223,7 +356,7 @@ export const createKeyFromPasswordArgon2 = async (
       timeCost,
       memoryCost,
       parallelism,
-      hashLength,
+      hashLength:64,
       type: argonType,
       raw: true
     })
@@ -233,25 +366,7 @@ export const createKeyFromPasswordArgon2 = async (
 
   }
 
-
-  const boxSecret = fullSecret.slice(0, 32)
-  const signSeed = fullSecret.slice(32)
-
-  const boxKeyPair = box.keyPair.fromSecretKey(boxSecret);
-  const signKeyPair = sign.keyPair.fromSeed(signSeed);
-
-  return {
-    private: {
-      box: base64.encode(boxKeyPair.secretKey),
-      sign: base64.encode(signKeyPair.secretKey)
-    },
-    public: {
-      box: base64.encode(boxKeyPair.publicKey),
-      sign: base64.encode(signKeyPair.publicKey)
-    },
-    type: "nacl"
-  };
-
+  return fullSecret
 
 };
 
@@ -494,6 +609,105 @@ export const verifyData = async function(
 
   return sign.detached.verify(payloadHash, theirPayloadSignature, theirPublicSignKey)
 };
+
+
+
+export const createNaclSharedSecret = async function(
+  to: IIdentity,
+  from: IIdentity
+): Promise<INaclSharedSecret> {
+
+  const sharedSecret = x25519.getSharedSecret(
+    toHexString( base64.decode( from.key.private.box ) ),
+    toHexString( base64.decode( to.key.public.box ) )
+  )
+
+  return {
+    sharedSecret: base64.encode(sharedSecret)
+  }
+};
+
+export const createPQSharedSecret = async function(
+  to: IIdentity
+): Promise<IPQSharedSecret> {
+
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = to.key.type.split(',')
+  
+
+  if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+
+  let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+
+  if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+
+  const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.pqkem));
+  
+  console.log('==============================')
+  console.log(cipherText)
+
+  return {
+    cipherText: base64.encode(cipherText),
+    sharedSecret: base64.encode(sharedSecret)
+  }
+
+};
+
+export const recoverPQSharedSecret = async function(
+  identity: IIdentity,    //! our identity
+  cipherText: string
+): Promise<IPQSharedSecret> {
+
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = identity.key.type.split(',')
+  
+
+  if(pqkem_type.indexOf('ml_kem') != 0){ throw new Error('pqkem_type must start with ml_kem')}
+
+  let pqkemClass = PQ_CLASSES.kem[ pqkem_type ] || null
+
+  if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
+
+  const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.pqkem));
+  
+  return {
+    cipherText, sharedSecret: base64.encode(sharedSecret)
+  }
+
+};
+
+export const createAESStream = async function(
+  naclSharedSecret: INaclSharedSecret=null,
+  pqSharedSecret: IPQSharedSecret=null,
+  streamNonce: Uint8Array,
+  info: 	Uint8Array | string=AES_OFFER_INFO,
+  salt: Uint8Array | string=AES_OFFER_SALT,
+): Promise<IAESStream> {
+
+  let fullSecret = null
+
+  if(naclSharedSecret && pqSharedSecret){
+  
+    fullSecret = Buffer.concat([ 
+      base64.decode(naclSharedSecret.sharedSecret),
+      base64.decode(pqSharedSecret.sharedSecret)
+    ])
+
+  } else if (naclSharedSecret && !pqSharedSecret){
+
+    fullSecret = base64.decode(naclSharedSecret.sharedSecret)
+
+  } else if (!naclSharedSecret && pqSharedSecret){
+
+    fullSecret = base64.decode(pqSharedSecret.sharedSecret)
+    
+  }
+
+  const streamKey = await hkdf('sha512', fullSecret, salt, info, 32)
+
+  const stream = siv(streamKey, streamNonce);
+  return stream;
+}
 
 
 export function extractPublicKeys (enc : string) : IKeyBundle {

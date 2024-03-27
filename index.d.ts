@@ -1,10 +1,14 @@
 declare interface IKeyBundle {
   box: string;
   sign: string;
+  pqkem?: string;
+  pqsign_ml?: string;
+  pqsign_slh?: string;
 }
 
 declare interface IKey {
-  type: "nacl";
+  type: string;
+  hash: string,
   private?: IKeyBundle;
   public: IKeyBundle;
 }
@@ -12,21 +16,32 @@ declare interface IKey {
 declare interface IIdentityProps {
   id: string;
   key: IKey;
+  
 }
 
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
   value: string;
+  //type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
 declare interface IIdentityMiniProps extends IKey {
-  id: string;
+  hash: string;
+  type: string;
+  public: IKeyBundle
 }
 
 declare interface IIdentity extends IIdentityProps {
-  toJSON(extract?: boolean): IIdentityProps;
+  seed?: Buffer;
 
+  assertHasPostQuatumKEM(): void;
+  hasPostQuatumKEM(): boolean;
+
+  createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
+  recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
+
+  toJSON(extract?: boolean): IIdentityProps;
   toMini(): IIdentityMiniProps;
 }
 
@@ -45,4 +60,25 @@ declare interface IMessage extends IEncryptedData {
 declare interface IDecryptedData {
   data: any;
   from: IIdentityProps;
+}
+
+declare interface IPQSharedSecret {
+  cipherText: string;
+  sharedSecret: string;
+}
+
+declare interface INaclSharedSecret {
+  sharedSecret: string;
+}
+
+declare interface IAESStream {
+  encrypt(plaintext: Uint8Array): Uint8Array;
+  decrypt(ciphertext: Uint8Array): Uint8Array;
+}
+
+declare interface IAESStreamOffer {
+  sender: IIdentity;
+  pqCipherText: string;
+  streamNonce: string;
+  stream?: IAESStream;
 }

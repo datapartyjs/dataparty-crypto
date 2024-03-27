@@ -2,7 +2,7 @@ import { encryptData, signData, verifyData, decryptData } from "./routines";
 
 export default class Message implements IMessage {
   enc: string;
-  sig: string | ISignature;
+  sig: ISignature | string;
   msg: any;
 
   from: IIdentityProps;
@@ -19,7 +19,7 @@ export default class Message implements IMessage {
       return this.from;
     }
     else{
-      return this.sig.sender
+      return (this.sig as ISignature).sender
     }
   }
 

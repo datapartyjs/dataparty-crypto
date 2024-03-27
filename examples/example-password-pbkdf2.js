@@ -12,14 +12,13 @@ async function main (){
     let startMs = Date.now()
 
 
-    let key = await dataparty_crypto.Routines.createKeyFromPasswordPbkdf2(password, salt)
+    let key = await dataparty_crypto.Identity.fromPasswordPbkdf2(password, salt)
 
     let endMs = Date.now()
 
 
     console.log('key')
     console.log(key)
-
 
     const deltaMs = endMs - startMs
 

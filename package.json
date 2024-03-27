@@ -1,12 +1,16 @@
 {
   "name": "@dataparty/crypto",
   "private": false,
-  "version": "1.1.4",
+  "version": "2.0.0",
   "description": "dataparty crypto routines",
   "main": "index.js",
   "types": "index.d.ts",
   "dependencies": {
     "@babel/runtime": "^7.23.2",
+    "@deepkit/bson": "^1.0.1-alpha.143",
+    "@noble/ciphers": "^0.5.1",
+    "@noble/curves": "^1.4.0",
+    "@noble/post-quantum": "../noble-post-quantum",
     "@panva/hkdf": "^1.0.4",
     "@stablelib/base64": "^0.7.2",
     "bip39": "^3.1.0",
@@ -14,7 +18,7 @@
     "crypto-browserify": "^3.12.0",
     "debug": "^4.1.1",
     "eventemitter3": "^5.0.0",
-    "tweetnacl": "^1.0.1"
+    "tweetnacl": "^1.0.3"
   },
   "files": [
     "dist",
@@ -32,7 +36,8 @@
     "@babel/preset-typescript": "^7.23.2",
     "@types/faker": "^4.1.5",
     "@types/jest": "^24.0.15",
-    "argon2": "^0.30.3",
+    "@types/node": "^20.11.30",
+    "argon2": "^0.40.1",
     "argon2-browser": "^1.18.0",
     "events": "^3.3.0",
     "faker": "^4.1.0",
@@ -42,7 +47,7 @@
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
     "ts-jest": "^24.0.2",
-    "typescript": "^3.5.2"
+    "typescript": "^5.4.2"
   },
   "scripts": {
     "watch": "./node_modules/.bin/babel src --watch -d dist --extensions \".ts,.js\" --source-maps inline",
