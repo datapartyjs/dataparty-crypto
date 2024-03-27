@@ -98,6 +98,10 @@ export default class Identity implements IIdentity {
     
     const naclSharedSecret = await createNaclSharedSecret(to, this)
     const streamNonce = await getRandomBuffer(12)
+
+
+    console.log('aes-stream pqss', pqSharedSecret)
+    console.log('aes-stream naclss', naclSharedSecret)
     
     const stream = await createAESStream(
         naclSharedSecret,
@@ -108,9 +112,9 @@ export default class Identity implements IIdentity {
     )
     
     return {
-      sender: this.getPublicIdentity(),
+      sender: this.publicIdentity(),
       pqCipherText: pqSharedSecret==null ? null : pqSharedSecret.cipherText,
-      streamNonce: base64.decode(streamNonce),
+      streamNonce: base64.encode(streamNonce),
       stream
     }
   }
@@ -135,12 +139,15 @@ export default class Identity implements IIdentity {
       
     }
 
-    const naclSharedSecret = await createNaclSharedSecret(this, offer.sender)
+    const naclSharedSecret = await createNaclSharedSecret(offer.sender, this)
 
-    const stream = await dataparty_crypto.Routines.createAESStream(
-      pqSharedSecret,
+    console.log('recover-stream pqss', pqSharedSecret)
+    console.log('recover-stream naclss', naclSharedSecret)
+
+    const stream = await createAESStream(
       naclSharedSecret,
-      offer.streamNonce,
+      pqSharedSecret,
+      base64.decode(offer.streamNonce),
       info,
       salt
     )
@@ -149,8 +156,8 @@ export default class Identity implements IIdentity {
 
   }
 
-  getPublicIdentity(){
-    return dataparty_crypto.Identity.fromString( JSON.stringify(this.toJSON(false)) )
+  publicIdentity(){
+    return Identity.fromString( JSON.stringify(this.toJSON(false)) )
   }
 
   /**

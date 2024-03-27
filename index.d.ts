@@ -82,11 +82,3 @@ declare interface IAESStreamOffer {
   streamNonce: string;
   stream?: IAESStream;
 }
-
-/*
-Client      <->      Server
-get /identity   ->    |
-  |    <-   FullIdentity(root),
-
-
-*/

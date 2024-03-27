@@ -10,12 +10,6 @@ import * as crypto from 'crypto'
 
 import * as bip39 from 'bip39'
 
-//const argon2 = require('argon2-browser')
-
-
-//import * as argon2 from 'argon2-browser'
-
-
 
 import { x25519 } from '@noble/curves/ed25519';
 import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
@@ -649,8 +643,11 @@ export const createPQSharedSecret = async function(
 
   if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
 
-  const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.box));
+  const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.pqkem));
   
+  console.log('==============================')
+  console.log(cipherText)
+
   return {
     cipherText: base64.encode(cipherText),
     sharedSecret: base64.encode(sharedSecret)
@@ -673,7 +670,7 @@ export const recoverPQSharedSecret = async function(
 
   if(pqkemClass == null){ throw new Error('invalid pqkem_type') }
 
-  const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.box));
+  const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.pqkem));
   
   return {
     cipherText, sharedSecret: base64.encode(sharedSecret)
