@@ -10,29 +10,12 @@ async function main (){
     const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed()
     const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed()
 
-    console.log('aliceFullKey')
-    console.log(aliceFullKey)
-
-    console.log('bobFullKey')
-    console.log(bobFullKey)
 
     const alicePublicKey = aliceFullKey.publicIdentity()
     const bobPublicKey = bobFullKey.publicIdentity()
-    
-    console.log('alice PUBLIC')
-    console.log(alicePublicKey)
-
-    console.log('bob PUBLIC')
-    console.log(bobPublicKey)
 
 
     const aliceOffer = await aliceFullKey.createStream( bobPublicKey )
-
-
-    console.log(aliceOffer)
-    console.log('alice offer')
-
-
     const bobStream = await bobFullKey.recoverStream(aliceOffer)
 
 

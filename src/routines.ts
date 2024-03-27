@@ -643,9 +643,6 @@ export const createPQSharedSecret = async function(
 
   const { cipherText, sharedSecret } = pqkemClass.encapsulate(base64.decode(to.key.public.pqkem));
   
-  console.log('==============================')
-  console.log(cipherText)
-
   return {
     cipherText: base64.encode(cipherText),
     sharedSecret: base64.encode(sharedSecret)

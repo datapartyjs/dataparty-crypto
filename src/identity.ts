@@ -98,10 +98,6 @@ export default class Identity implements IIdentity {
     
     const naclSharedSecret = await createNaclSharedSecret(to, this)
     const streamNonce = await getRandomBuffer(12)
-
-
-    console.log('aes-stream pqss', pqSharedSecret)
-    console.log('aes-stream naclss', naclSharedSecret)
     
     const stream = await createAESStream(
         naclSharedSecret,
@@ -140,9 +136,6 @@ export default class Identity implements IIdentity {
     }
 
     const naclSharedSecret = await createNaclSharedSecret(offer.sender, this)
-
-    console.log('recover-stream pqss', pqSharedSecret)
-    console.log('recover-stream naclss', naclSharedSecret)
 
     const stream = await createAESStream(
       naclSharedSecret,
@@ -205,7 +198,6 @@ export default class Identity implements IIdentity {
 
     const seed = await createSeedFromMnemonic(phrase, password, argon2)
 
-    console.log('seed type', typeof seed)
 
     const key = await createKey( seed )
 
