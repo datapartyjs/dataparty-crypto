@@ -109,7 +109,7 @@ export default class Identity implements IIdentity {
     
     return {
       sender: this.getPublicIdentity(),
-      pqCipherText: pqSharedSecret.cipherText,
+      pqCipherText: pqSharedSecret==null ? null : pqSharedSecret.cipherText,
       streamNonce: base64.decode(streamNonce),
       stream
     }
