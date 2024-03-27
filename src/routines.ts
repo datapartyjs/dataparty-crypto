@@ -10,6 +10,12 @@ import * as crypto from 'crypto'
 
 import * as bip39 from 'bip39'
 
+//const argon2 = require('argon2-browser')
+
+
+//import * as argon2 from 'argon2-browser'
+
+
 
 import { x25519 } from '@noble/curves/ed25519';
 import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
@@ -61,13 +67,13 @@ export const toHexString = (
  * Generate private and public keys
  */
 export const createKey = async (
-  seed: Buffer = null,
+  seed: Buffer,
   postQuantum: boolean = true,
   type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
 ): Promise<IKey> => {
 
-  if(!seed){
-    seed = await getRandomBuffer(32)
+  if(seed.length != 64){
+    throw new Error('seed expected to be 64 bytes')
   }
 
   const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = type.split(',')
@@ -190,8 +196,6 @@ export const generateMnemonic = async (
   if(!seed){
     seed = await getRandomBuffer(32)
   }
-
-  console.log('seed', seed)
   
   return bip39.entropyToMnemonic(seed)
 }
@@ -208,6 +212,8 @@ export const validateMnemonic = (
  */
 export const createSeedFromMnemonic = async (
   phrase: string,
+  password: string,
+  argon2: any,
   ignoreValidation: boolean = false
 ): Promise<Buffer> => {
 
@@ -216,20 +222,30 @@ export const createSeedFromMnemonic = async (
     throw new Error('invalid mnemonic phrase')
   }
   
-  const fullSeed = await bip39.mnemonicToEntropy(phrase);  //! 32bytes
+  const entropy = await bip39.mnemonicToEntropy(phrase)
+  const normalizedPhrase = bip39.entropyToMnemonic(entropy)
 
-  console.log('typeof fullseed', typeof fullSeed)
-  console.log('fullseed', fullSeed)
+  if(!password || password.length < 1){
+    password = '00000000'
+  }
 
-  return Buffer.from(fullSeed, 'hex')
+  const normalizedPassword = password.normalize('NFKD')
+
+  const fullSeed = await createSeedFromPasswordArgon2(
+    argon2,
+    normalizedPhrase,
+    Buffer.from(normalizedPassword, 'utf8')
+  )
+
+  return fullSeed
 
 };
 
-export const getMnemonicFromSeed = async(
-  seed: Buffer
+export const entropyToMnemonic = async(
+  entropy: Buffer
 ): Promise<string> => {
 
-  return bip39.entropyToMnemonic(seed)
+  return bip39.entropyToMnemonic(entropy)
 }
 
 
@@ -253,7 +269,7 @@ export const createSeedFromPasswordPbkdf2 = async (
 
 
   const fullSecret = await ( new Promise((resolve,reject)=>{
-    crypto.pbkdf2(password, salt, rounds, 32, 'sha512', (err, derivedKey)=>{
+    crypto.pbkdf2(password, salt, rounds, 64, 'sha512', (err, derivedKey)=>{
       if(err){ return reject(err) }
 
       resolve(derivedKey)
@@ -282,10 +298,10 @@ export const createSeedFromPasswordArgon2 = async (
   salt: Uint8Array,
   //associatedData: Buffer,
   timeCost: Number = 3,
-  memoryCost: Number = 65536,
+  memoryCost: Number = 64*1024,
   parallelism: Number = 4,
   type: string = 'argon2id',
-  hashLength: Number = 32
+  hashLength: Number = 64
 ): Promise<Buffer> => {
 
   let fullSecret = null

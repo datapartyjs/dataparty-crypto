@@ -1,4 +1,3 @@
-
 import { Buffer } from 'buffer'
 import Message from "./message";
 import {
@@ -26,16 +25,12 @@ export default class Identity implements IIdentity {
       throw new Error('identity already initialized')
     }
 
-    if(!this.seed){ this.seed = await getRandomBuffer(32) }
+    if(!this.seed){ this.seed = await getRandomBuffer(64) }
 
     let type = undefined
     if(this.key && this.key.type){ type = this.key.type }
 
     this.key = await createKey(this.seed, true, type)
-  }
-
-  async getMnemonic(){
-    return await getMnemonicFromSeed( this.seed )
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -93,14 +88,6 @@ export default class Identity implements IIdentity {
     return JSON.stringify(this.toJSON());
   }
 
-  static async random(opts = {} as any){
-    const identity = new Identity(opts)
-
-    await identity.initialize()
-
-    return identity
-  }
-
   static fromString(input: string) {
     const parsed = JSON.parse(input);
     return new Identity(parsed);
@@ -113,8 +100,8 @@ export default class Identity implements IIdentity {
     return new Identity({ key, seed })
   }
 
-  static async fromMnemonic(phrase: string) {
-    const seed = await createSeedFromMnemonic(phrase)
+  static async fromMnemonic(phrase: string, password: string, argon2: any) {
+    const seed = await createSeedFromMnemonic(phrase, password, argon2)
 
     console.log('seed type', typeof seed)
 
