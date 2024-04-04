@@ -14,7 +14,7 @@ declare interface IKey {
 }
 
 declare interface IIdentityProps {
-  id: string;
+  //id: string;
   key: IKey;
   
 }
@@ -22,8 +22,8 @@ declare interface IIdentityProps {
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
-  value: string;
-  //type: string;   //! type of key used for signing (nacl vs pq_dsa65)
+  value: [string];
+  type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
 declare interface IIdentityMiniProps extends IKey {
@@ -45,16 +45,46 @@ declare interface IIdentity extends IIdentityProps {
   toMini(): IIdentityMiniProps;
 }
 
-declare interface IEncryptedData {
-  enc?: string;
-  sig?: string | ISignature;
-  msg?: any;
-  from?: IIdentityProps;
+declare interface IClearData {
+  data: String | Buffer
 }
 
-declare interface IMessage extends IEncryptedData {
-  verify(verifier: IIdentity): Promise<boolean>;
-  sign(signer: IIdentity): Promise<boolean>;
+declare interface ISignedData {
+  msg: IClearData,
+  sigs: [ISignature]
+}
+
+declare interface IEncryptedData {
+  enc: string;
+  sig: ISignature;
+  from: IIdentityProps;
+}
+
+declare interface ISignedMessage extends ISignedData {
+  verify(verifier: IIdentityProps, requirePostQuantum: boolean): Promise<boolean>;
+  verifyAll(requirePostQuantum: boolean): Promise<boolean>;
+  sign(signer: IIdentity, requirePostQuantum: boolean): Promise<boolean>;
+  signers(requirePostQuantum: boolean): Promise<[IIdentityProps]>;
+  encrypt(from: IIdentity, requirePostQuantum: boolean): Promise<IEncryptedData>;
+
+  assertVerifyAll(requirePostQuantum: boolean): void; 
+  assertVerifySigner(verifier: IIdentityProps, requirePostQuantum: boolean): void;
+
+  hash(): Buffer;
+
+  toJSON(): Object;
+  toBSON(): Buffer;
+}
+
+declare interface IEncryptedMessage extends IEncryptedData {
+  decrypt(requirePostQuantum: boolean): Promise<ISignedMessage>;
+  verify(verifier: IIdentityProps, requirePostQuantum: boolean): Promise<boolean>;
+}
+
+declare interface IMessage extends IClearData {
+  verify(verifier: IIdentityProps): Promise<boolean>;
+  sign(signer: IIdentity): Promise<ISignedMessage>;
+  encrypt(from: IIdentity, to: IIdentityProps): Promise<IEncryptedMessage>;
 }
 
 declare interface IDecryptedData {
