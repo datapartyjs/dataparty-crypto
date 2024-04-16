@@ -2,6 +2,9 @@ import { Buffer } from 'buffer'
 
 import * as base64 from "@stablelib/base64";
 
+import {t} from '@deepkit/type';
+import {getBSONDecoder, getBSONSerializer} from '@deepkit/bson';
+
 import Message from "./message";
 
 import {
@@ -176,6 +179,13 @@ export default class Identity implements IIdentity {
       type: this.key.type,
       public: this.key.public
     };
+  }
+
+  toMiniBson(){
+    const bsonSerialize = getBSONSerializer<IIdentityMiniProps>();
+    const bsonValue = bsonSerialize(this.toMini())
+
+    return bsonValue
   }
 
   toString() {

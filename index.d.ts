@@ -16,14 +16,13 @@ declare interface IKey {
 declare interface IIdentityProps {
   //id: string;
   key: IKey;
-  
 }
 
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
   value: [string];
-  type: string;   //! type of key used for signing (nacl vs pq_dsa65)
+  type: string;   //! type of key used for signing (nacl vs pq_dsa65 etc)
 }
 
 declare interface IIdentityMiniProps extends IKey {
@@ -43,10 +42,11 @@ declare interface IIdentity extends IIdentityProps {
 
   toJSON(extract?: boolean): IIdentityProps;
   toMini(): IIdentityMiniProps;
+  toMiniBSON(): Buffer;
 }
 
 declare interface IClearData {
-  data: String | Buffer
+  data: Buffer
 }
 
 declare interface ISignedData {
@@ -70,7 +70,7 @@ declare interface ISignedMessage extends ISignedData {
   assertVerifyAll(requirePostQuantum: boolean): void; 
   assertVerifySigner(verifier: IIdentityProps, requirePostQuantum: boolean): void;
 
-  hash(): Buffer;
+  hash(): Uint8Array;
 
   toJSON(): Object;
   toBSON(): Buffer;
@@ -79,12 +79,21 @@ declare interface ISignedMessage extends ISignedData {
 declare interface IEncryptedMessage extends IEncryptedData {
   decrypt(requirePostQuantum: boolean): Promise<ISignedMessage>;
   verify(verifier: IIdentityProps, requirePostQuantum: boolean): Promise<boolean>;
+
+  hash(): Uint8Array;
+
+  toJSON(): Object;
+  toBSON(): Buffer;
 }
 
-declare interface IMessage extends IClearData {
-  verify(verifier: IIdentityProps): Promise<boolean>;
+declare interface IClearMessage extends IClearData {
   sign(signer: IIdentity): Promise<ISignedMessage>;
   encrypt(from: IIdentity, to: IIdentityProps): Promise<IEncryptedMessage>;
+
+  hash(): Uint8Array;
+
+  toJSON(): Object;
+  toBSON(): Buffer;
 }
 
 declare interface IDecryptedData {

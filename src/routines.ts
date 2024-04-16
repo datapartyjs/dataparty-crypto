@@ -41,6 +41,10 @@ const PQ_CLASSES = {
   }
 }
 
+import {t} from '@deepkit/type';
+import {getBSONDecoder, getBSONSerializer, parseObject, ParserV3} from '@deepkit/bson';
+
+
 const newNonce = () => randomBytes(box.nonceLength);
 
 const nonceSignSize = box.nonceLength + sign.publicKeyLength;
@@ -568,9 +572,17 @@ const getPayload = (signer: IIdentity, data: any) => {
  */
 export const signData = async function(
   signer: IIdentity,
-  data: any
+  data: IClearData,
+  keys: [string], //! sign, pqsign_ml, pqsign_slh
+  /*requirePostQuantum: boolean=false,
+  postQuantumUseML: boolean=true,
+  postQuantumUseSLH: boolean=false*/
 ): Promise<ISignature> {
-  const { timestamp, sender, payload } = getPayload(signer, data);
+
+  const timestamp = Date.now();
+  const sender = signer.toMiniBSON();
+  const payload = Buffer.concat([sender, data.data])
+
 
   logger(`signing ${payload.length} bytes as ${signer.toMini()}`);
 
@@ -578,14 +590,22 @@ export const signData = async function(
 
   logger("data hash: " + base64.encode(payloadHash));
 
+  //NaclSign
   const signerPrivateSignKey = base64.decode(signer.key.private.sign);
   const payloadSignature = sign.detached(payloadHash, signerPrivateSignKey);
 
+  /*
+
+  signingTypes = 
+
   return {
     timestamp,
-    sender,
-    value: base64.encode(payloadSignature)
+    sender: signer.toMini(),
+    value: base64.encode(payloadSignature),
+    type: signingTypes
   };
+
+  */
 };
 
 /**
