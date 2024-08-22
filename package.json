@@ -10,7 +10,7 @@
     "@deepkit/bson": "^1.0.1-alpha.143",
     "@noble/ciphers": "^0.5.1",
     "@noble/curves": "^1.4.0",
-    "@noble/post-quantum": "../noble-post-quantum",
+    "@noble/post-quantum": "^0.1.0",
     "@panva/hkdf": "^1.0.4",
     "@stablelib/base64": "^0.7.2",
     "bip39": "^3.1.0",
