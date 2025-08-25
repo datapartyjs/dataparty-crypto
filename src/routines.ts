@@ -719,3 +719,47 @@ export function extractPublicKeys (enc : string) : IKeyBundle {
     sign: base64.encode(publicSignKey)
   }
 }
+
+export const solveProofOfWork = async (
+  input,
+  argon,
+  { timeCost = 3, memoryCost = 2048, parallelism = 1, complexity = 19 } = {}
+) => {
+  const options = {
+    timeCost,
+    memoryCost,
+    parallelism,
+    type: argon.argon2d
+  };
+
+  if (complexity < 8) {
+    throw new Error("complexity must be at least 8");
+  }
+
+  try {
+    for (;;) {
+      const hash = await argon.hash(input, options);
+      if (await checkProofOfWorkComplexity(hash.split("$")[5], complexity)) {
+        return hash;
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkProofOfWorkComplexity = (hash, complexity) => {
+  if (complexity < 8) {
+    throw new Error("complexity must be at least 8");
+  }
+
+  let off = 0;
+  let i;
+
+  for (i = 0; i <= complexity - 8; i += 8, off++) {
+    if (hash[off] !== "0") return false;
+  }
+
+  const mask = 0xff << (8 + i - complexity);
+  return (hash[off] & mask) === 0;
+};
