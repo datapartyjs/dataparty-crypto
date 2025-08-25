@@ -748,6 +748,50 @@ export const solveProofOfWork = async (
   }
 };
 
+export const verifyProofOfWork = async (
+  input,
+  hash,
+  argon,
+  { timeCost = 3, memoryCost = 9, parallelism = 1, complexity = 19 } = {}
+) => {
+  const parsed = hash.split("$");
+  const regexp = /m=([0-9]+),t=([0-9]+),p=([0-9]+)/;
+
+  if (parsed[3] === undefined) {
+    throw new Error("Invalid hash");
+  }
+
+  const matches = parsed[3].match(regexp);
+
+  if (!matches) {
+    throw new Error("Invalid hash");
+  }
+
+  if (matches[1] != memoryCost) {
+    console.log('memoryCost')
+    return false;
+  }
+
+  if (matches[2] != timeCost) {
+    console.log('timeCost')
+    return false;
+  }
+
+  if (matches[3] != parallelism) {
+    console.log('parallelism')
+    return false;
+  }
+
+  if (!checkProofOfWorkComplexity(parsed[5], complexity)) {
+    console.log('check complexity')
+    return false;
+  }
+
+  const result = await argon.verify(hash, input);
+
+  return result;
+};
+
 export const checkProofOfWorkComplexity = (hash, complexity) => {
   if (complexity < 8) {
     throw new Error("complexity must be at least 8");
