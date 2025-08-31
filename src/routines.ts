@@ -677,7 +677,7 @@ export const createAESStream = async function(
   naclSharedSecret: INaclSharedSecret=null,
   pqSharedSecret: IPQSharedSecret=null,
   streamNonce: Uint8Array,
-  info: 	Uint8Array | string=AES_OFFER_INFO,
+  info: Uint8Array | string=AES_OFFER_INFO,
   salt: Uint8Array | string=AES_OFFER_SALT,
 ): Promise<IAESStream> {
 
@@ -721,7 +721,7 @@ export function extractPublicKeys (enc : string) : IKeyBundle {
 }
 
 export const solveProofOfWork = async (
-  input,
+  input : Buffer | string,
   argon,
   { timeCost = 3, memoryCost = 2048, parallelism = 1, complexity = 19 } = {}
 ) => {
@@ -749,8 +749,8 @@ export const solveProofOfWork = async (
 };
 
 export const verifyProofOfWork = async (
-  input,
-  hash,
+  input: Buffer | string,
+  hash: string,
   argon,
   { timeCost = 3, memoryCost = 9, parallelism = 1, complexity = 19 } = {}
 ) => {
@@ -767,17 +767,17 @@ export const verifyProofOfWork = async (
     throw new Error("Invalid hash");
   }
 
-  if (matches[1] != memoryCost) {
+  if (parseInt(matches[1]) != memoryCost) {
     console.log('memoryCost')
     return false;
   }
 
-  if (matches[2] != timeCost) {
+  if (parseInt(matches[2]) != timeCost) {
     console.log('timeCost')
     return false;
   }
 
-  if (matches[3] != parallelism) {
+  if (parseInt(matches[3]) != parallelism) {
     console.log('parallelism')
     return false;
   }
@@ -792,7 +792,10 @@ export const verifyProofOfWork = async (
   return result;
 };
 
-export const checkProofOfWorkComplexity = (hash, complexity) => {
+export const checkProofOfWorkComplexity = (
+  hash: string,
+  complexity
+) => {
   if (complexity < 8) {
     throw new Error("complexity must be at least 8");
   }
