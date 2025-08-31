@@ -677,7 +677,7 @@ export const createAESStream = async function(
   naclSharedSecret: INaclSharedSecret=null,
   pqSharedSecret: IPQSharedSecret=null,
   streamNonce: Uint8Array,
-  info: 	Uint8Array | string=AES_OFFER_INFO,
+  info: Uint8Array | string=AES_OFFER_INFO,
   salt: Uint8Array | string=AES_OFFER_SALT,
 ): Promise<IAESStream> {
 
@@ -719,3 +719,94 @@ export function extractPublicKeys (enc : string) : IKeyBundle {
     sign: base64.encode(publicSignKey)
   }
 }
+
+export const solveProofOfWork = async (
+  input : Buffer | string,
+  argon,
+  { timeCost = 3, memoryCost = 2048, parallelism = 1, complexity = 19 } = {}
+) => {
+  const options = {
+    timeCost,
+    memoryCost,
+    parallelism,
+    type: argon.argon2d
+  };
+
+  if (complexity < 8) {
+    throw new Error("complexity must be at least 8");
+  }
+
+  try {
+    for (;;) {
+      const hash = await argon.hash(input, options);
+      if (await checkProofOfWorkComplexity(hash.split("$")[5], complexity)) {
+        return hash;
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const verifyProofOfWork = async (
+  input: Buffer | string,
+  hash: string,
+  argon,
+  { timeCost = 3, memoryCost = 9, parallelism = 1, complexity = 19 } = {}
+) => {
+  const parsed = hash.split("$");
+  const regexp = /m=([0-9]+),t=([0-9]+),p=([0-9]+)/;
+
+  if (parsed[3] === undefined) {
+    throw new Error("Invalid hash");
+  }
+
+  const matches = parsed[3].match(regexp);
+
+  if (!matches) {
+    throw new Error("Invalid hash");
+  }
+
+  if (parseInt(matches[1]) != memoryCost) {
+    console.log('memoryCost')
+    return false;
+  }
+
+  if (parseInt(matches[2]) != timeCost) {
+    console.log('timeCost')
+    return false;
+  }
+
+  if (parseInt(matches[3]) != parallelism) {
+    console.log('parallelism')
+    return false;
+  }
+
+  if (!checkProofOfWorkComplexity(parsed[5], complexity)) {
+    console.log('check complexity')
+    return false;
+  }
+
+  const result = await argon.verify(hash, input);
+
+  return result;
+};
+
+export const checkProofOfWorkComplexity = (
+  hash: string,
+  complexity
+) => {
+  if (complexity < 8) {
+    throw new Error("complexity must be at least 8");
+  }
+
+  let off = 0;
+  let i;
+
+  for (i = 0; i <= complexity - 8; i += 8, off++) {
+    if (hash[off] !== "0") return false;
+  }
+
+  const mask = 0xff << (8 + i - complexity);
+  return (hash[off] & mask) === 0;
+};
