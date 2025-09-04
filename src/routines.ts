@@ -78,6 +78,56 @@ export const reach = (obj, path, defaultVal)=>{
   return val;
 }
 
+
+export const hashLongKey = async (
+  key: IKey
+): Promise<string> => {
+
+  let typeList = key.type.split(',')
+
+  return base64.encode(hash(
+    Buffer.concat([
+      Buffer.from(typeList.join(',')),
+      base64.decode(key.public.box),
+      base64.decode(key.public.sign),
+      base64.decode(key.public.pqkem),
+      base64.decode(key.public.pqsign_ml),
+      base64.decode(key.public.pqsign_slh)
+    ])
+  ))
+}
+
+export const hashShortKey = async (
+  key: IKey
+): Promise<string> => {
+
+  let typeList = key.type.split(',')
+
+  return base64.encode(hash(
+    Buffer.concat([
+      Buffer.from(typeList.join(',')),
+      base64.decode(key.public.box),
+      base64.decode(key.public.sign)
+    ])
+  ))
+}
+
+
+export const hashKey = async (
+  key: IKey
+): Promise<string> => {
+
+  let typeList = key.type.split(',')
+
+  if(typeList.length == 2){
+    return hashShortKey(key)
+  }
+
+  return hashLongKey(key)
+}
+
+
+
 /**
  * Generate private and public keys
  */
@@ -249,7 +299,7 @@ export const createSeedFromMnemonic = async (
   const fullSeed = await createSeedFromPasswordArgon2(
     argon2,
     normalizedPhrase,
-    Buffer.from(normalizedPassword, 'utf8')
+    hash(Buffer.from(normalizedPassword, 'utf8'))
   )
 
   return fullSeed
