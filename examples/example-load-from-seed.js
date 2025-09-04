@@ -23,6 +23,10 @@ async function main (){
 
     console.log(key.seed)
 
+    const verifyHash = await dataparty_crypto.Routines.hashKey( key.key )
+
+    console.log('hash check', verifyHash)
+
 
     const deltaMs = endMs - startMs
 
