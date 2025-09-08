@@ -1,5 +1,5 @@
 
-import { encryptData, signData, verifyData, decryptData, BSON } from "./routines";
+import { encryptData, signData, verifyData, decryptData, BSON, Utils } from "./routines";
 
 export default class Message implements IMessage {
   enc: Uint8Array;
@@ -38,11 +38,17 @@ export default class Message implements IMessage {
     this.sig = sig
   }
 
+  fromJSON(json){
+    if(json.enc){ this.enc = Utils.base64.decode(json.enc) }
+    if(json.sig){ this.sig = Utils.base64.decode(json.sig) }
+    if(json.msg){ this.msg = Utils.base64.decode(json.msg) }
+  }
+
   toJSON(){
     return {
-      enc: this.enc,
-      sig: this.sig,
-      msg: this.msg
+      enc: this.enc ? Utils.base64.encode(this.enc) : undefined,
+      sig: this.sig ? Utils.base64.encode(this.sig) : undefined,
+      msg: this.msg ? Utils.base64.encode(this.msg) : undefined
     }
   }
 

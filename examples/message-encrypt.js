@@ -2,7 +2,6 @@ const argon2 = require('argon2')
 const dataparty_crypto = require('../dist')
 
 async function main (){
-
     
 
     let startMs = Date.now()
