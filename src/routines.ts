@@ -54,6 +54,8 @@ const AES_OFFER_SALT = base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PS
 
 const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
 
+export const BSON = { parseObject, ParserV3, serializeBSON }
+
 export const toHexString = (
   byteArray : Buffer | Uint8Array
 ) => {
