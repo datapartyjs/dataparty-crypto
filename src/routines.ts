@@ -24,6 +24,8 @@ import {
 } from '@noble/post-quantum/slh-dsa';
 import { siv } from '@noble/ciphers/aes';
 
+import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
+
 import Debug from "debug";
 const logger = Debug("dataparty-crypto.Routines");
 
@@ -125,7 +127,6 @@ export const hashKey = async (
 
   return hashLongKey(key)
 }
-
 
 
 /**
@@ -433,10 +434,10 @@ export const encryptData = async function(
 ): Promise<IEncryptedData> {
 
 
-  const payload = Buffer.from(JSON.stringify({
+  const payload = serializeBSON({
     from: ourIdentity.toMini(),
     data
-  }));
+  });
 
   logger(
     `encrypting ${payload.length} bytes from 
@@ -577,7 +578,8 @@ export const decryptData = async function(
   }
   //#endregion
 
-  const { data, from } = JSON.parse(Buffer.from(payload).toString());
+  const { data, from } = parseObject(new ParserV3(payload))
+  //JSON.parse(Buffer.from(payload).toString());
 
   decryptStep = "VERIFY SENDER";
   //#region
@@ -601,12 +603,12 @@ export const decryptData = async function(
 const getPayload = (signer: IIdentity, data: any) => {
   const timestamp = Date.now();
   const sender = signer.toMini();
-  const payload = Buffer.from(
-    JSON.stringify({
-      sender,
-      data
-    })
-  );
+
+  const payload = serializeBSON({
+    timestamp,
+    sender,
+    data
+  })
 
   return { timestamp, sender, payload };
 };
@@ -634,7 +636,8 @@ export const signData = async function(
   return {
     timestamp,
     sender,
-    value: base64.encode(payloadSignature)
+    value: base64.encode(payloadSignature),
+    type: 'sign'
   };
 };
 
@@ -660,6 +663,96 @@ export const verifyData = async function(
   return sign.detached.verify(payloadHash, theirPayloadSignature, theirPublicSignKey)
 };
 
+
+
+export const signDataPQ = async (
+  signer: IIdentity,
+  data: Uint8Array,
+  type: 'pqsign_ml' | 'pqsign_slh'
+): Promise<ISignature> => {
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = signer.key.type.split(',')
+
+  
+  let signClass = null
+
+  if(type == 'pqsign_slh'){
+
+    if(pqsign_slh_type.indexOf('slh_dsa') != 0){ throw new Error('pqsign_slh_type must start with slh_dsa')}
+    signClass = PQ_CLASSES.dsa[ pqsign_slh_type ] || null
+    
+  } else if(type == 'pqsign_ml'){
+
+    if(pqsign_ml_type.indexOf('ml_dsa') != 0){ throw new Error('pqsign_ml_type must start with ml_dsa')}
+    signClass = PQ_CLASSES.dsa[ pqsign_ml_type ] || null
+
+  } else {
+    throw new Error('invalid signature type requested')
+  }
+
+  if(!signClass){ throw new Error('invalid signing class type') }
+
+  const privateKey = base64.decode(signer.key.private[type])
+
+  const timestamp = Date.now()
+  const sender = signer.toMini()
+  const payload = serializeBSON({
+    timestamp,
+    sender,
+    data
+  })
+
+  const payloadHash = hash(payload)
+
+  const signature = signClass.sign( privateKey, payloadHash)
+
+  return {
+    timestamp,
+    sender: signer.toMini(),
+    value: base64.encode(signature),
+    type
+  }
+  
+}
+
+
+export const verifyDataPQ = async (
+  signer: IIdentity,
+  signature: ISignature,
+  data: Uint8Array,
+): Promise<boolean> => {
+
+  const [box_type, sign_type, pqkem_type, pqsign_ml_type, pqsign_slh_type ] = signer.key.type.split(',')
+
+  const type = signature.type
+  let signClass = null
+
+  if(type == 'pqsign_slh'){
+
+    if(pqsign_slh_type.indexOf('slh_dsa') != 0){ throw new Error('pqsign_slh_type must start with slh_dsa')}
+    signClass = PQ_CLASSES.dsa[ pqsign_slh_type ] || null
+    
+  } else if(type == 'pqsign_ml'){
+
+    if(pqsign_ml_type.indexOf('ml_dsa') != 0){ throw new Error('pqsign_ml_type must start with ml_dsa')}
+    signClass = PQ_CLASSES.dsa[ pqsign_ml_type ] || null
+
+  } else {
+    throw new Error('invalid signature type requested')
+  }
+
+  if(!signClass){ throw new Error('invalid signing class type') }
+
+  const payload = serializeBSON({
+    timestamp: signature.timestamp,
+    sender: signer.toMini(),
+    data
+  })
+
+  const payloadHash = hash(payload)
+
+  return signClass.verify( base64.decode(signer.key.public[type]), base64.decode(payloadHash), signature.value )  
+}
 
 
 export const createNaclSharedSecret = async function(
@@ -723,6 +816,45 @@ export const recoverPQSharedSecret = async function(
 
 };
 
+export class AESStream implements IAESStream {
+  rxNonce: Uint8Array;
+  txNonce: Uint8Array;
+  streamKey: Uint8Array;
+
+  constructor(streamKey: Uint8Array, streamNonce: Uint8Array) {
+
+    this.streamKey = streamKey
+    this.rxNonce = new Uint8Array(streamNonce)
+    this.txNonce = new Uint8Array(streamNonce)
+  }
+
+  async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
+    const nextTxNonce = await getRandomBuffer(16)
+    const payload = serializeBSON({
+      nonce: nextTxNonce,
+      data: plaintext
+    })
+
+    let aesFn = siv(this.streamKey, this.txNonce)
+
+    this.txNonce = nextTxNonce
+
+    return aesFn.encrypt(payload)
+  }
+
+  async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
+    let aesFn = siv(this.streamKey, this.rxNonce)
+
+    const plaintext = aesFn.decrypt(ciphertext)
+
+    const payload = parseObject(new ParserV3(plaintext))
+
+    this.rxNonce = payload.data
+
+    return payload.data
+  }
+}
+
 export const createAESStream = async function(
   naclSharedSecret: INaclSharedSecret=null,
   pqSharedSecret: IPQSharedSecret=null,
@@ -752,7 +884,7 @@ export const createAESStream = async function(
 
   const streamKey = await hkdf('sha512', fullSecret, salt, info, 32)
 
-  const stream = siv(streamKey, streamNonce);
+  const stream = new AESStream(streamKey, streamNonce)
   return stream;
 }
 
@@ -788,9 +920,9 @@ export const solveProofOfWork = async (
 
   try {
     for (;;) {
-      const hash = await argon.hash(input, options);
+      const proof = await argon.hash(input, options);
       if (await checkProofOfWorkComplexity(hash.split("$")[5], complexity)) {
-        return hash;
+        return proof;
       }
     }
   } catch (error) {
@@ -800,21 +932,21 @@ export const solveProofOfWork = async (
 
 export const verifyProofOfWork = async (
   input: Buffer | string,
-  hash: string,
+  proof: string,
   argon,
   { timeCost = 3, memoryCost = 9, parallelism = 1, complexity = 19 } = {}
 ) => {
-  const parsed = hash.split("$");
+  const parsed = proof.split("$");
   const regexp = /m=([0-9]+),t=([0-9]+),p=([0-9]+)/;
 
   if (parsed[3] === undefined) {
-    throw new Error("Invalid hash");
+    throw new Error("Invalid proof");
   }
 
   const matches = parsed[3].match(regexp);
 
   if (!matches) {
-    throw new Error("Invalid hash");
+    throw new Error("Invalid proof");
   }
 
   if (parseInt(matches[1]) != memoryCost) {
@@ -837,13 +969,13 @@ export const verifyProofOfWork = async (
     return false;
   }
 
-  const result = await argon.verify(hash, input);
+  const result = await argon.verify(proof, input);
 
   return result;
 };
 
 export const checkProofOfWorkComplexity = (
-  hash: string,
+  proof: string,
   complexity
 ) => {
   if (complexity < 8) {
@@ -854,9 +986,9 @@ export const checkProofOfWorkComplexity = (
   let i;
 
   for (i = 0; i <= complexity - 8; i += 8, off++) {
-    if (hash[off] !== "0") return false;
+    if (proof[off] !== "0") return false;
   }
 
   const mask = 0xff << (8 + i - complexity);
-  return (hash[off] & mask) === 0;
+  return (proof[off] & mask) === 0;
 };

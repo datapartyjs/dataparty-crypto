@@ -23,7 +23,7 @@ declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
   value: string;
-  //type: string;   //! type of key used for signing (nacl vs pq_dsa65)
+  type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
 declare interface IIdentityMiniProps extends IKey {
@@ -72,8 +72,10 @@ declare interface INaclSharedSecret {
 }
 
 declare interface IAESStream {
-  encrypt(plaintext: Uint8Array): Uint8Array;
-  decrypt(ciphertext: Uint8Array): Uint8Array;
+  rxNonce: Uint8Array;
+  txNonce: Uint8Array;
+  encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
+  decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }
 
 declare interface IAESStreamOffer {

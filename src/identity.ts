@@ -97,7 +97,7 @@ export default class Identity implements IIdentity {
     }
     
     const naclSharedSecret = await createNaclSharedSecret(to, this)
-    const streamNonce = await getRandomBuffer(12)
+    const streamNonce = await getRandomBuffer(16)
     
     const stream = await createAESStream(
         naclSharedSecret,
