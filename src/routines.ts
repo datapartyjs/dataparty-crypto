@@ -24,7 +24,7 @@ import {
 } from '@noble/post-quantum/slh-dsa';
 import { siv } from '@noble/ciphers/aes';
 
-import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
+import {parseObject, BaseParser, serializeBSONWithoutOptimiser} from '@deepkit/bson';
 
 import Debug from "debug";
 const logger = Debug("dataparty-crypto.Routines");
@@ -45,6 +45,10 @@ const PQ_CLASSES = {
 
 const newNonce = () => randomBytes(box.nonceLength);
 
+export const Utils = {
+  randomBytes
+}
+
 const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
 const nonceSignBoxSize = nonceSignSize + box.publicKeyLength;
@@ -54,7 +58,7 @@ const AES_OFFER_SALT = base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PS
 
 const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
 
-export const BSON = { parseObject, ParserV3, serializeBSON }
+export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
 
 export const toHexString = (
   byteArray : Buffer | Uint8Array
@@ -436,7 +440,7 @@ export const encryptData = async function(
 ): Promise<IEncryptedData> {
 
 
-  const payload = serializeBSON({
+  const payload = serializeBSONWithoutOptimiser({
     from: ourIdentity.toMini(false),
     data
   });
@@ -580,7 +584,7 @@ export const decryptData = async function(
   }
   //#endregion
 
-  const { data, from } = parseObject(new ParserV3(payload))
+  const { data, from } = parseObject(new BaseParser(payload))
   //JSON.parse(Buffer.from(payload).toString());
 
   decryptStep = "VERIFY SENDER";
@@ -606,7 +610,7 @@ const getPayload = (signer: IIdentity, data: any) => {
   const timestamp = Date.now();
   const sender = signer.toMini(false);
 
-  const payload = serializeBSON({
+  const payload = serializeBSONWithoutOptimiser({
     timestamp,
     sender,
     data
@@ -698,7 +702,7 @@ export const signDataPQ = async (
 
   const timestamp = Date.now()
   const sender = signer.toMini()
-  const payload = serializeBSON({
+  const payload = serializeBSONWithoutOptimiser({
     timestamp,
     sender,
     data
@@ -745,7 +749,7 @@ export const verifyDataPQ = async (
 
   if(!signClass){ throw new Error('invalid signing class type') }
 
-  const payload = serializeBSON({
+  const payload = serializeBSONWithoutOptimiser({
     timestamp: signature.timestamp,
     sender: signer.toMini(),
     data
@@ -831,8 +835,8 @@ export class AESStream implements IAESStream {
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
-    const nextTxNonce = await getRandomBuffer(16)
-    const payload = serializeBSON({
+    const nextTxNonce = randomBytes(12)
+    const payload = serializeBSONWithoutOptimiser({
       nonce: nextTxNonce,
       data: plaintext
     })
@@ -845,13 +849,15 @@ export class AESStream implements IAESStream {
   }
 
   async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
+
+
     let aesFn = siv(this.streamKey, this.rxNonce)
 
     const plaintext = aesFn.decrypt(ciphertext)
 
-    const payload = parseObject(new ParserV3(plaintext))
+    const payload = parseObject(new BaseParser(plaintext))
 
-    this.rxNonce = payload.data
+    this.rxNonce = payload.nonce
 
     return payload.data
   }
@@ -952,22 +958,18 @@ export const verifyProofOfWork = async (
   }
 
   if (parseInt(matches[1]) != memoryCost) {
-    console.log('memoryCost')
     return false;
   }
 
   if (parseInt(matches[2]) != timeCost) {
-    console.log('timeCost')
     return false;
   }
 
   if (parseInt(matches[3]) != parallelism) {
-    console.log('parallelism')
     return false;
   }
 
   if (!checkProofOfWorkComplexity(parsed[5], complexity)) {
-    console.log('check complexity')
     return false;
   }
 

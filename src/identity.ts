@@ -1,11 +1,12 @@
 import { Buffer } from 'buffer'
 
 import * as base64 from "@stablelib/base64";
-import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
 
 import Message from "./message";
 
 import {
+  Utils,
+  BSON,
   reach,
   getRandomBuffer,
   createKey,
@@ -98,7 +99,7 @@ export default class Identity implements IIdentity {
     }
     
     const naclSharedSecret = await createNaclSharedSecret(to, this)
-    const streamNonce = await getRandomBuffer(16)
+    const streamNonce = Utils.randomBytes(12)
     
     const stream = await createAESStream(
         naclSharedSecret,
@@ -155,7 +156,7 @@ export default class Identity implements IIdentity {
   }
 
   toBSON(extract: boolean = false) : Uint8Array{
-    return serializeBSON({
+    return BSON.serializeBSONWithoutOptimiser({
       id: this.id,
       seed: extract==true ? base64.decode(this.seed) :  undefined,
       key: {
@@ -180,7 +181,7 @@ export default class Identity implements IIdentity {
   }
 
   static fromBSON(bson: Uint8Array) : Identity {
-    let obj = parseObject( ParserV3(bson) )
+    let obj = BSON.parseObject( BSON.BaseParser(bson) )
 
     const parsed = {
       id: obj.id,

@@ -1,6 +1,5 @@
-import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
 
-import { encryptData, signData, verifyData, decryptData } from "./routines";
+import { encryptData, signData, verifyData, decryptData, BSON } from "./routines";
 
 export default class Message implements IMessage {
   enc: Uint8Array;
@@ -26,14 +25,14 @@ export default class Message implements IMessage {
   }
 
   toBSON(): Uint8Array {
-    return serializeBSON({
+    return BSON.serializeBSONWithoutOptimiser({
       enc: this.enc,
       sig: this.sig
     })
   }
 
   fromBSON(bson: Uint8Array){
-    const {enc, sig} = parseObject( ParserV3(bson) )
+    const {enc, sig} = BSON.parseObject( BSON.BaseParser(bson) )
 
     this.enc = enc
     this.sig = sig
@@ -55,7 +54,12 @@ export default class Message implements IMessage {
       throw new Error("encypted messages already have signatures");
     }
 
-    this.sig = await signData(identity, this.msg);
+    let msgToSign = this.msg
+    if(! (msgToSign instanceof Uint8Array)){
+      msgToSign = BSON.serializeBSONWithoutOptimiser(msgToSign)
+    }
+
+    this.sig = await signData(identity, msgToSign);
 
     return true;
   }
@@ -72,7 +76,13 @@ export default class Message implements IMessage {
     if(this.enc){
       await this.decrypt(from)
     } else {
-      return verifyData(from, this.sig as ISignature, this.msg);
+
+      let msgToSign = this.msg
+      if(! (msgToSign instanceof Uint8Array)){
+        msgToSign = BSON.serializeBSONWithoutOptimiser(msgToSign)
+      }
+      
+      return verifyData(from, this.sig as ISignature, msgToSign);
     }
   }
 
