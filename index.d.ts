@@ -22,7 +22,7 @@ declare interface IIdentityProps {
 declare interface ISignature {
   timestamp: number;
   sender: IIdentityMiniProps;
-  value: string;
+  value: Uint8Array;
   type: string;   //! type of key used for signing (nacl vs pq_dsa65)
 }
 
@@ -42,12 +42,12 @@ declare interface IIdentity extends IIdentityProps {
   recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
 
   toJSON(extract?: boolean): IIdentityProps;
-  toMini(): IIdentityMiniProps;
+  toMini(includePostQuantum?: boolean): IIdentityMiniProps;
 }
 
 declare interface IEncryptedData {
-  enc?: string;
-  sig?: string | ISignature;
+  enc?: Uint8Array;
+  sig?: Uint8Array | ISignature;
   msg?: any;
   from?: IIdentityProps;
 }
@@ -72,8 +72,8 @@ declare interface INaclSharedSecret {
 }
 
 declare interface IAESStream {
-  rxNonce: Uint8Array;
-  txNonce: Uint8Array;
+  //rxNonce: Uint8Array;
+  //txNonce: Uint8Array;
   encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }

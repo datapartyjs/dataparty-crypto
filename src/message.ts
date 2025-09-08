@@ -1,15 +1,17 @@
+import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
+
 import { encryptData, signData, verifyData, decryptData } from "./routines";
 
 export default class Message implements IMessage {
-  enc: string;
-  sig: ISignature | string;
+  enc: Uint8Array;
+  sig: ISignature | Uint8Array;
   msg: any;
 
   from: IIdentityProps;
 
   constructor(opts: IEncryptedData) {
     this.enc = opts.enc;
-    this.sig = opts.sig; //! String when this.enc set, or object when this.msg set
+    this.sig = opts.sig; //! Uint8Array when this.enc set, or object when this.msg set
     this.msg = opts.msg;
   }
 
@@ -21,6 +23,20 @@ export default class Message implements IMessage {
     else{
       return (this.sig as ISignature).sender
     }
+  }
+
+  toBSON(): Uint8Array {
+    return serializeBSON({
+      enc: this.enc,
+      sig: this.sig
+    })
+  }
+
+  fromBSON(bson: Uint8Array){
+    const {enc, sig} = parseObject( ParserV3(bson) )
+
+    this.enc = enc
+    this.sig = sig
   }
 
   toJSON(){

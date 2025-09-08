@@ -435,7 +435,7 @@ export const encryptData = async function(
 
 
   const payload = serializeBSON({
-    from: ourIdentity.toMini(),
+    from: ourIdentity.toMini(false),
     data
   });
 
@@ -482,8 +482,8 @@ export const encryptData = async function(
   const messageHashSigned = sign(messageHash, ourPrivateSignKey);
 
   return {
-    enc: base64.encode(fullMessage),
-    sig: base64.encode(messageHashSigned)
+    enc: fullMessage,
+    sig: messageHashSigned
   };
 };
 
@@ -501,8 +501,8 @@ export const decryptData = async function(
   const ourPrivateKeyBundle = ourIdentity.key.private;
   const ourPrivateBoxKey = base64.decode(ourPrivateKeyBundle.box);
 
-  const fullMessage = base64.decode(enc);
-  const messageHashSigned = base64.decode(sig as string);
+  const fullMessage = /*base64.decode(*/ enc //);
+  const messageHashSigned = sig; // base64.decode(sig as string);
 
   decryptStep = "EXTRACT EMBEDED DATA";
   //#region 
@@ -602,7 +602,7 @@ export const decryptData = async function(
 
 const getPayload = (signer: IIdentity, data: any) => {
   const timestamp = Date.now();
-  const sender = signer.toMini();
+  const sender = signer.toMini(false);
 
   const payload = serializeBSON({
     timestamp,
@@ -624,7 +624,7 @@ export const signData = async function(
 ): Promise<ISignature> {
   const { timestamp, sender, payload } = getPayload(signer, data);
 
-  logger(`signing ${payload.length} bytes as ${signer.toMini()}`);
+  logger(`signing ${payload.length} bytes as ${signer.toMini(false)}`);
 
   const payloadHash = hash(payload);
 
@@ -636,7 +636,7 @@ export const signData = async function(
   return {
     timestamp,
     sender,
-    value: base64.encode(payloadSignature),
+    value: payloadSignature,
     type: 'sign'
   };
 };
@@ -651,7 +651,7 @@ export const verifyData = async function(
 ): Promise<boolean> {
   const { payload } = getPayload(signer, data)
 
-  const theirPayloadSignature = base64.decode(signature.value)
+  const theirPayloadSignature = signature.value
   
   const payloadHash = hash(payload)
 
@@ -708,8 +708,8 @@ export const signDataPQ = async (
 
   return {
     timestamp,
-    sender: signer.toMini(),
-    value: base64.encode(signature),
+    sender,
+    value: signature,
     type
   }
   
@@ -751,7 +751,7 @@ export const verifyDataPQ = async (
 
   const payloadHash = hash(payload)
 
-  return signClass.verify( base64.decode(signer.key.public[type]), base64.decode(payloadHash), signature.value )  
+  return signClass.verify( base64.decode(signer.key.public[type]), payloadHash, signature.value )
 }
 
 

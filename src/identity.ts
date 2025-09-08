@@ -170,11 +170,26 @@ export default class Identity implements IIdentity {
     };
   }
 
-  toMini() {
+  toMini(includePostQuantum=true) {
+
+    let pubKeys = {
+      box:this.key.public.box,
+      sign: this.key.public.sign,
+      pqkem: undefined,
+      pqsign_ml: undefined,
+      pqsign_slh: undefined
+    }
+
+    if(includePostQuantum){
+      pubKeys.pqkem = this.key.public.pqkem
+      pubKeys.pqsign_ml = this.key.public.pqsign_ml
+      pubKeys.pqsign_slh = this.key.public.pqsign_slh
+    }
+
     return {
       hash: this.key.hash,
       type: this.key.type,
-      public: this.key.public
+      public: pubKeys
     };
   }
 
