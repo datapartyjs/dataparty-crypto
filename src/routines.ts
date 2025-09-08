@@ -46,8 +46,10 @@ const PQ_CLASSES = {
 const newNonce = () => randomBytes(box.nonceLength);
 
 export const Utils = {
-  randomBytes
+  randomBytes, base64, 
 }
+
+export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
 
 const nonceSignSize = box.nonceLength + sign.publicKeyLength;
 
@@ -58,7 +60,6 @@ const AES_OFFER_SALT = base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PS
 
 const HkdfFullseedSalt = base64.decode('GgRPwNd9OImrnIisRl79XhgltCZ7g6zGcRpaxqJuOco=')
 
-export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
 
 export const toHexString = (
   byteArray : Buffer | Uint8Array

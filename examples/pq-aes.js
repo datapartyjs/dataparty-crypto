@@ -14,7 +14,7 @@ async function main (){
     const aliceOffer = await aliceFullKey.createStream( bobPublicKey )
     const bobStream = await bobFullKey.recoverStream(aliceOffer)
 
-
+    console.log(aliceOffer)
     console.log('bob has stream')
 
     const aliceMsg = await aliceOffer.stream.encrypt(new TextEncoder().encode('time to party'))
