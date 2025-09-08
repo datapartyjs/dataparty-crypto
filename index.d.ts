@@ -41,6 +41,7 @@ declare interface IIdentity extends IIdentityProps {
   createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
   recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
 
+  toBSON(extract?: boolean): Uint8Array;
   toJSON(extract?: boolean): IIdentityProps;
   toMini(includePostQuantum?: boolean): IIdentityMiniProps;
 }

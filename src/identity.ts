@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer'
 
 import * as base64 from "@stablelib/base64";
+import {parseObject, ParserV3, serializeBSON} from '@deepkit/bson';
 
 import Message from "./message";
 
@@ -151,6 +152,60 @@ export default class Identity implements IIdentity {
 
   publicIdentity(){
     return Identity.fromString( JSON.stringify(this.toJSON(false)) )
+  }
+
+  toBSON(extract: boolean = false) : Uint8Array{
+    return serializeBSON({
+      id: this.id,
+      seed: extract==true ? base64.decode(this.seed) :  undefined,
+      key: {
+        type: this.key.type,
+        hash: base64.decode(this.key.hash),
+        public: {
+          box: base64.decode(this.key.public.box),
+          sign: base64.decode(this.key.public.sign),
+          pqkem: this.key.public.pqkem ? base64.decode(this.key.public.pqkem) : undefined,
+          pqsign_ml: this.key.public.pqkem ? base64.decode(this.key.public.pqsign_ml) : undefined,
+          pqsign_slh: this.key.public.pqkem ? base64.decode(this.key.public.pqsign_slh) : undefined
+        },
+        private: extract == true ? {
+          box: base64.decode(this.key.private.box),
+          sign: base64.decode(this.key.private.sign),
+          pqkem: this.key.private.pqkem ? base64.decode(this.key.private.pqkem) : undefined,
+          pqsign_ml: this.key.private.pqkem ? base64.decode(this.key.private.pqsign_ml) : undefined,
+          pqsign_slh: this.key.private.pqkem ? base64.decode(this.key.private.pqsign_slh) : undefined
+        } : undefined
+      }
+    });
+  }
+
+  static fromBSON(bson: Uint8Array) : Identity {
+    let obj = parseObject( ParserV3(bson) )
+
+    const parsed = {
+      id: obj.id,
+      seed: obj.seed ? base64.encode(obj.seed) :  undefined,
+      key: {
+        type: obj.key.type,
+        hash: base64.encode(obj.key.hash),
+        public: {
+          box: base64.encode(obj.key.public.box),
+          sign: base64.encode(obj.key.public.sign),
+          pqkem: obj.key.public.pqkem ? base64.encode(obj.key.public.pqkem) : undefined,
+          pqsign_ml: obj.key.public.pqkem ? base64.encode(obj.key.public.pqsign_ml) : undefined,
+          pqsign_slh: obj.key.public.pqkem ? base64.encode(obj.key.public.pqsign_slh) : undefined
+        },
+        private: obj.key.private ? {
+          box: base64.encode(obj.key.private.box),
+          sign: base64.encode(obj.key.private.sign),
+          pqkem: obj.key.private.pqkem ? base64.encode(obj.key.private.pqkem) : undefined,
+          pqsign_ml: obj.key.private.pqkem ? base64.encode(obj.key.private.pqsign_ml) : undefined,
+          pqsign_slh: obj.key.private.pqkem ? base64.encode(obj.key.private.pqsign_slh) : undefined
+        } : undefined
+      }
+    };
+
+    return new Identity(parsed)
   }
 
   /**
