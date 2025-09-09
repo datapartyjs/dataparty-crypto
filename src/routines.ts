@@ -898,8 +898,8 @@ export const createAESStream = async function(
 }
 
 
-export function extractPublicKeys (enc : string) : IKeyBundle {
-  const fullMessage = base64.decode(enc);
+export function extractPublicKeys (enc : Uint8Array) : IKeyBundle {
+  const fullMessage = enc;
 
   const publicSignKey = fullMessage.slice(box.nonceLength, nonceSignSize);
 
