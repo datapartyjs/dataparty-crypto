@@ -823,6 +823,12 @@ export const recoverPQSharedSecret = async function(
 
 };
 
+function copyBuffer(src)  {
+  var dst = new ArrayBuffer(src.byteLength);
+  new Uint8Array(dst).set(new Uint8Array(src));
+  return dst;
+}
+
 export class AESStream implements IAESStream {
   rxNonce: Uint8Array;
   txNonce: Uint8Array;
@@ -831,8 +837,8 @@ export class AESStream implements IAESStream {
   constructor(streamKey: Uint8Array, streamNonce: Uint8Array) {
 
     this.streamKey = streamKey
-    this.rxNonce = new Uint8Array(streamNonce)
-    this.txNonce = new Uint8Array(streamNonce)
+    this.rxNonce = new Uint8Array( copyBuffer(streamNonce) )
+    this.txNonce = new Uint8Array( copyBuffer(streamNonce) )
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
