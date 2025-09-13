@@ -842,7 +842,7 @@ export class AESStream implements IAESStream {
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
-    const nextTxNonce = this.txNonce //randomBytes(12)
+    const nextTxNonce = /* this.txNonce */ randomBytes(12)
     const payload = serializeBSONWithoutOptimiser({
       nonce: nextTxNonce,
       data: plaintext
