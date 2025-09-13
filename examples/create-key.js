@@ -27,7 +27,7 @@ async function main (){
 
 
     console.log('key')
-    //console.log('\t', key)
+    console.log('\t', key)
 
     console.log('entropy len=', entropy.length , entropy)
     console.log('phrase len=', phrase.length, phrase)

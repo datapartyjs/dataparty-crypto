@@ -1,15 +1,16 @@
-import { encryptData, signData, verifyData, decryptData } from "./routines";
+
+import { encryptData, signData, verifyData, decryptData, BSON, Utils } from "./routines";
 
 export default class Message implements IMessage {
-  enc: string;
-  sig: ISignature | string;
+  enc: Uint8Array;
+  sig: ISignature | Uint8Array;
   msg: any;
 
   from: IIdentityProps;
 
   constructor(opts: IEncryptedData) {
     this.enc = opts.enc;
-    this.sig = opts.sig; //! String when this.enc set, or object when this.msg set
+    this.sig = opts.sig; //! Uint8Array when this.enc set, or object when this.msg set
     this.msg = opts.msg;
   }
 
@@ -23,11 +24,31 @@ export default class Message implements IMessage {
     }
   }
 
+  toBSON(): Uint8Array {
+    return BSON.serializeBSONWithoutOptimiser({
+      enc: this.enc,
+      sig: this.sig
+    })
+  }
+
+  fromBSON(bson: Uint8Array){
+    const {enc, sig} = BSON.parseObject( BSON.BaseParser(bson) )
+
+    this.enc = enc
+    this.sig = sig
+  }
+
+  fromJSON(json){
+    if(json.enc){ this.enc = Utils.base64.decode(json.enc) }
+    if(json.sig){ this.sig = Utils.base64.decode(json.sig) }
+    if(json.msg){ this.msg = Utils.base64.decode(json.msg) }
+  }
+
   toJSON(){
     return {
-      enc: this.enc,
-      sig: this.sig,
-      msg: this.msg
+      enc: this.enc ? Utils.base64.encode(this.enc) : undefined,
+      sig: this.sig ? Utils.base64.encode(this.sig) : undefined,
+      msg: this.msg ? Utils.base64.encode(this.msg) : undefined
     }
   }
 
@@ -39,7 +60,12 @@ export default class Message implements IMessage {
       throw new Error("encypted messages already have signatures");
     }
 
-    this.sig = await signData(identity, this.msg);
+    let msgToSign = this.msg
+    if(! (msgToSign instanceof Uint8Array)){
+      msgToSign = BSON.serializeBSONWithoutOptimiser(msgToSign)
+    }
+
+    this.sig = await signData(identity, msgToSign);
 
     return true;
   }
@@ -56,7 +82,13 @@ export default class Message implements IMessage {
     if(this.enc){
       await this.decrypt(from)
     } else {
-      return verifyData(from, this.sig as ISignature, this.msg);
+
+      let msgToSign = this.msg
+      if(! (msgToSign instanceof Uint8Array)){
+        msgToSign = BSON.serializeBSONWithoutOptimiser(msgToSign)
+      }
+      
+      return verifyData(from, this.sig as ISignature, msgToSign);
     }
   }
 
