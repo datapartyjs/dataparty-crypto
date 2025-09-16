@@ -191,7 +191,7 @@ export default class Identity implements IIdentity {
   }
 
   static fromBSON(bson: Uint8Array) : Identity {
-    let obj = BSON.parseObject( BSON.BaseParser(bson) )
+    let obj = BSON.parseObject( new BSON.BaseParser(bson) )
 
     let seedB64 = undefined 
     if(obj.seed){
