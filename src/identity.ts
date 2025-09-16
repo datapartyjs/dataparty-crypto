@@ -156,9 +156,15 @@ export default class Identity implements IIdentity {
   }
 
   toBSON(extract: boolean = false) : Uint8Array{
+
+    let seedB64 = undefined 
+    if(extract == true){
+      seedB64 = typeof this.seed == 'string' ? this.seed : base64.decude(this.seed)
+    }
+
     return BSON.serializeBSONWithoutOptimiser({
       id: this.id,
-      seed: extract==true ? base64.decode(this.seed) :  undefined,
+      seed: extract==true ? seedB64 :  undefined,
       key: {
         type: this.key.type,
         hash: base64.decode(this.key.hash),
