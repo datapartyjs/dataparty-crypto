@@ -32,7 +32,7 @@ export default class Identity implements IIdentity {
     this.seed = !opts || !opts.seed ? null : opts.seed;
   }
 
-  async initialize(){
+  async initialize(clearSeed = false){
     if(this.key != null && this.key.private){
       throw new Error('identity already initialized')
     }
@@ -43,6 +43,10 @@ export default class Identity implements IIdentity {
     if(this.key && this.key.type){ type = this.key.type }
 
     this.key = await createKey(this.seed, true, type)
+
+    if(clearSeed){
+      this.seed = null
+    }
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -158,13 +162,13 @@ export default class Identity implements IIdentity {
   toBSON(extract: boolean = false) : Uint8Array{
 
     let seedB64 = undefined 
-    if(extract == true){
-      seedB64 = typeof this.seed == 'string' ? this.seed : base64.decode(this.seed)
+    if(extract == true && this.seed){
+      seedB64 = typeof this.seed == 'string' ? this.seed : base64.encode(this.seed)
     }
 
     return BSON.serializeBSONWithoutOptimiser({
       id: this.id,
-      seed: extract==true ? seedB64 :  undefined,
+      seed: extract==true && this.seed ? seedB64 :  undefined,
       key: {
         type: this.key.type,
         hash: base64.decode(this.key.hash),
@@ -189,9 +193,14 @@ export default class Identity implements IIdentity {
   static fromBSON(bson: Uint8Array) : Identity {
     let obj = BSON.parseObject( BSON.BaseParser(bson) )
 
+    let seedB64 = undefined 
+    if(obj.seed){
+      seedB64 = typeof obj.seed == 'string' ? obj.seed : base64.encode(obj.seed)
+    }
+
     const parsed = {
       id: obj.id,
-      seed: obj.seed ? base64.encode(obj.seed) :  undefined,
+      seed: obj.seed? seedB64 :  undefined,
       key: {
         type: obj.key.type,
         hash: base64.encode(obj.key.hash),
