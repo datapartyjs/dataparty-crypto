@@ -159,7 +159,7 @@ export default class Identity implements IIdentity {
 
     let seedB64 = undefined 
     if(extract == true){
-      seedB64 = typeof this.seed == 'string' ? this.seed : base64.decude(this.seed)
+      seedB64 = typeof this.seed == 'string' ? this.seed : base64.decode(this.seed)
     }
 
     return BSON.serializeBSONWithoutOptimiser({
