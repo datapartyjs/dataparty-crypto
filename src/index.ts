@@ -1,10 +1,12 @@
+require('source-map-support').install()
+   
 
-const dataparty_crypto = {
-  Routines: require('./routines'),
-  Message: require('./message').default,
-  Identity: require('./identity').default,
-//  PQIdentity: require('./pq-identity').default
-}
+export * as Routines from './routines'
+//export * as Message from './message'
+//export * as Identity from './identity'
+import * as MessageImpl from './message'
+import * as IdentityImpl from './identity'
+export const Message = MessageImpl.default
+export const Identity = IdentityImpl.default
 
 
-module.exports = dataparty_crypto

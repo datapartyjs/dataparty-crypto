@@ -5,6 +5,8 @@ import * as base64 from "@stablelib/base64";
 import Message from "./message";
 
 import {
+  Utils,
+  BSON,
   reach,
   getRandomBuffer,
   createKey,
@@ -30,7 +32,7 @@ export default class Identity implements IIdentity {
     this.seed = !opts || !opts.seed ? null : opts.seed;
   }
 
-  async initialize(){
+  async initialize(clearSeed = false){
     if(this.key != null && this.key.private){
       throw new Error('identity already initialized')
     }
@@ -41,6 +43,10 @@ export default class Identity implements IIdentity {
     if(this.key && this.key.type){ type = this.key.type }
 
     this.key = await createKey(this.seed, true, type)
+
+    if(clearSeed){
+      this.seed = null
+    }
   }
 
   async encrypt(msg, to :IIdentity) {
@@ -97,7 +103,7 @@ export default class Identity implements IIdentity {
     }
     
     const naclSharedSecret = await createNaclSharedSecret(to, this)
-    const streamNonce = await getRandomBuffer(12)
+    const streamNonce = Utils.randomBytes(12)
     
     const stream = await createAESStream(
         naclSharedSecret,
@@ -153,6 +159,71 @@ export default class Identity implements IIdentity {
     return Identity.fromString( JSON.stringify(this.toJSON(false)) )
   }
 
+  toBSON(extract: boolean = false) : Uint8Array{
+
+    let seedB64 = undefined 
+    if(extract == true && this.seed){
+      seedB64 = typeof this.seed == 'string' ? this.seed : base64.encode(this.seed)
+    }
+
+    return BSON.serializeBSONWithoutOptimiser({
+      id: this.id,
+      seed: extract==true && this.seed ? seedB64 :  undefined,
+      key: {
+        type: this.key.type,
+        hash: base64.decode(this.key.hash),
+        public: {
+          box: base64.decode(this.key.public.box),
+          sign: base64.decode(this.key.public.sign),
+          pqkem: this.key.public.pqkem ? base64.decode(this.key.public.pqkem) : undefined,
+          pqsign_ml: this.key.public.pqkem ? base64.decode(this.key.public.pqsign_ml) : undefined,
+          pqsign_slh: this.key.public.pqkem ? base64.decode(this.key.public.pqsign_slh) : undefined
+        },
+        private: extract == true ? {
+          box: base64.decode(this.key.private.box),
+          sign: base64.decode(this.key.private.sign),
+          pqkem: this.key.private.pqkem ? base64.decode(this.key.private.pqkem) : undefined,
+          pqsign_ml: this.key.private.pqkem ? base64.decode(this.key.private.pqsign_ml) : undefined,
+          pqsign_slh: this.key.private.pqkem ? base64.decode(this.key.private.pqsign_slh) : undefined
+        } : undefined
+      }
+    });
+  }
+
+  static fromBSON(bson: Uint8Array) : Identity {
+    let obj = BSON.parseObject( new BSON.BaseParser(bson) )
+
+    let seedB64 = undefined 
+    if(obj.seed){
+      seedB64 = typeof obj.seed == 'string' ? obj.seed : base64.encode(obj.seed)
+    }
+
+    const parsed = {
+      id: obj.id,
+      seed: obj.seed? seedB64 :  undefined,
+      key: {
+        type: obj.key.type,
+        hash: base64.encode(obj.key.hash),
+        public: {
+          box: base64.encode(obj.key.public.box),
+          sign: base64.encode(obj.key.public.sign),
+          pqkem: obj.key.public.pqkem ? base64.encode(obj.key.public.pqkem) : undefined,
+          pqsign_ml: obj.key.public.pqkem ? base64.encode(obj.key.public.pqsign_ml) : undefined,
+          pqsign_slh: obj.key.public.pqkem ? base64.encode(obj.key.public.pqsign_slh) : undefined
+        },
+        private: obj.key.private ? {
+          box: base64.encode(obj.key.private.box),
+          sign: base64.encode(obj.key.private.sign),
+          pqkem: obj.key.private.pqkem ? base64.encode(obj.key.private.pqkem) : undefined,
+          pqsign_ml: obj.key.private.pqkem ? base64.encode(obj.key.private.pqsign_ml) : undefined,
+          pqsign_slh: obj.key.private.pqkem ? base64.encode(obj.key.private.pqsign_slh) : undefined
+        } : undefined
+      }
+    };
+
+    return new Identity(parsed)
+  }
+
   /**
    *
    * @param extract if true, remove private key
@@ -170,11 +241,26 @@ export default class Identity implements IIdentity {
     };
   }
 
-  toMini() {
+  toMini(includePostQuantum=true) {
+
+    let pubKeys = {
+      box:this.key.public.box,
+      sign: this.key.public.sign,
+      pqkem: undefined,
+      pqsign_ml: undefined,
+      pqsign_slh: undefined
+    }
+
+    if(includePostQuantum){
+      pubKeys.pqkem = this.key.public.pqkem
+      pubKeys.pqsign_ml = this.key.public.pqsign_ml
+      pubKeys.pqsign_slh = this.key.public.pqsign_slh
+    }
+
     return {
       hash: this.key.hash,
       type: this.key.type,
-      public: this.key.public
+      public: pubKeys
     };
   }
 
