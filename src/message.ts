@@ -73,9 +73,6 @@ export default class Message implements IMessage {
     }
 
     let msgToSign = this.msg
-    /*if(! (msgToSign instanceof Uint8Array)){
-      msgToSign = BSON.serializeBSONWithoutOptimiser(msgToSign)
-    }*/
 
     let sigs = []
     logger('signing classic')

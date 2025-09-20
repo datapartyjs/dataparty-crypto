@@ -33,7 +33,7 @@ declare interface IIdentityMiniProps extends IKey {
 }
 
 declare interface IIdentity extends IIdentityProps {
-  seed?: Buffer;
+  seed?: Uint8Array;
 
   assertHasPostQuatumKEM(): void;
   hasPostQuatumKEM(): boolean;
@@ -41,6 +41,7 @@ declare interface IIdentity extends IIdentityProps {
   createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
   recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
 
+  toString(extract?: boolean): string;
   toBSON(extract?: boolean): Uint8Array;
   toJSON(extract?: boolean): IIdentityProps;
   toMini(includePostQuantum?: boolean): IIdentityMiniProps;
@@ -74,8 +75,6 @@ declare interface INaclSharedSecret {
 }
 
 declare interface IAESStream {
-  //rxNonce: Uint8Array;
-  //txNonce: Uint8Array;
   encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }

@@ -497,7 +497,7 @@ export const encryptData = async function(
 /**
  * Decrypted an encrypted data (base of Message) with our identity
  * @param ourIdentity
- * @param param1
+ * @param message 
  */
 export const decryptData = async function(
   ourIdentity: IIdentity,
@@ -654,7 +654,11 @@ export const signData = async function(
 };
 
 /**
- *
+ * 
+ * @param signer 
+ * @param signature 
+ * @param data 
+ * @returns Promise<boolean>
  */
 export const verifyData = async function(
   signer: IIdentity,
@@ -681,7 +685,13 @@ export const verifyData = async function(
 };
 
 
-
+/**
+ * 
+ * @param signer 
+ * @param data 
+ * @param type 
+ * @returns 
+ */
 export const signDataPQ = async (
   signer: IIdentity,
   data: Uint8Array,
@@ -737,7 +747,13 @@ export const signDataPQ = async (
   
 }
 
-
+/**
+ * 
+ * @param signer 
+ * @param signature 
+ * @param data 
+ * @returns 
+ */
 export const verifyDataPQ = async (
   signer: IIdentity,
   signature: ISignature,
