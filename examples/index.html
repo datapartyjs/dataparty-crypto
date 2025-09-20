@@ -58,8 +58,8 @@ async function main (){
     console.log('### Example messages')    
 
 
-    const alice = new dataparty_crypto.Identity({id:'alice', key:key0})
-    const bob = new dataparty_crypto.Identity({id:'bob', key:key})
+    const alice = await dataparty_crypto.Identity.fromRandomSeed({id:'alice', key:key0})
+    const bob = await dataparty_crypto.Identity.fromRandomSeed({id:'bob', key:key})
 
     let msg1 = new dataparty_crypto.Message({
         msg: {
@@ -85,7 +85,7 @@ async function main (){
 
     console.log('### Example signatures')
 
-    const aliceCopy = new dataparty_crypto.Identity(alice.toJSON())
+    const aliceCopy = await dataparty_crypto.Identity.fromRandomSeed(alice.toJSON())
 
     const signedMsg = await alice.sign({a:'hello world'})
 

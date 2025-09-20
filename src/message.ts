@@ -103,7 +103,7 @@ export default class Message implements IMessage {
   }
 
   async assertVerified(from: IIdentity, requirePostQuantum: boolean = false) {
-    let verified = await this.verify(from)
+    let verified = await this.verify(from, requirePostQuantum)
 
     if(!verified){
       throw new Error('message is not verified')

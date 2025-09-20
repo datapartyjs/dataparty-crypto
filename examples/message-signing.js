@@ -4,7 +4,7 @@ async function main (){
 
     let startMs = Date.now()
 
-    let alice = await dataparty_crypto.Identity.fromRandomSeed()
+    let alice = await dataparty_crypto.Identity.fromRandomSeed({id:'alice'})
     
     let msg1 = new dataparty_crypto.Message({msg:{
         myValue: 'hello world'

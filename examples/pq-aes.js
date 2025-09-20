@@ -3,8 +3,8 @@ let dataparty_crypto = require('../dist')
 async function main (){
     console.log('wooo!')
 
-    const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed()
-    const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed()
+    const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'alice'})
+    const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'bob'})
 
 
     const alicePublicKey = aliceFullKey.publicIdentity()

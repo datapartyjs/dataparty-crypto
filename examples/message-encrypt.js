@@ -5,10 +5,9 @@ async function main (){
 
     let startMs = Date.now()
 
-    let alice = await dataparty_crypto.Identity.fromRandomSeed()
-    let bob = await dataparty_crypto.Identity.fromRandomSeed()
+    const alice = await dataparty_crypto.Identity.fromRandomSeed({id:'alice'})
+    const bob = await dataparty_crypto.Identity.fromRandomSeed({id:'bob'})
 
-    //console.log(alice)
 
     let msg1 = new dataparty_crypto.Message({msg:{
         myValue: 'hello world'
@@ -16,7 +15,6 @@ async function main (){
 
     await msg1.encrypt(alice, bob.key)
 
-    let pqSig = await dataparty_crypto.Routines.signDataPQ(alice, msg1.enc, 'pqsign_ml')
 
     let value = await msg1.decrypt(bob)
 
@@ -27,9 +25,6 @@ async function main (){
 
     console.log('msg')
     console.log('\t', msg1.toJSON())
-
-    console.log('\n\npq signatue')
-    console.log(pqSig)
 
     const deltaMs = endMs - startMs
 
