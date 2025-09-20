@@ -32,6 +32,10 @@ export default class Identity implements IIdentity {
     this.seed = !opts || !opts.seed ? null : opts.seed;
   }
 
+  /**
+   * 
+   * @param clearSeed 
+   */
   async initialize(clearSeed = false){
     if(this.key != null && this.key.private){
       throw new Error('identity already initialized')
@@ -49,6 +53,9 @@ export default class Identity implements IIdentity {
     }
   }
 
+  /**
+   * 
+   */
   async encrypt(msg, to :IIdentity) {
     const message = new Message({ msg });
     await message.encrypt(this, to.key);
@@ -56,6 +63,11 @@ export default class Identity implements IIdentity {
     return message;
   }
 
+  /**
+   * 
+   * @param input 
+   * @returns 
+   */
   async decrypt(input: IEncryptedData) {
     const message = new Message(input);
     await message.decrypt(this);
@@ -63,25 +75,52 @@ export default class Identity implements IIdentity {
     return message;
   }
 
-  async sign(msg: any) {
+  /**
+   * 
+   * @param msg 
+   * @param requirePostQuantum 
+   * @returns 
+   */
+  async sign(msg: any, requirePostQuantum: boolean = false) {
     const message = new Message({ msg });
-    await message.sign(this);
+    await message.sign(this, requirePostQuantum);
 
     return message;
   }
 
-  async verify(message: IMessage) {
-    return message.verify(this);
+  /**
+   * 
+   * @param message 
+   * @param requirePostQuantum 
+   * @returns 
+   */
+  async verify(message: IMessage, requirePostQuantum: boolean = false) {
+    return await message.verify(this, requirePostQuantum);
   }
 
+  /**
+   * 
+   */
   assertHasPostQuatumKEM(){
     if(!this.hasPostQuatumKEM()){ throw new Error('no post quantum KEM') }
   }
 
+  /**
+   * 
+   * @returns 
+   */
   hasPostQuatumKEM(){
     return reach(this.key, 'public.pqkem', null) !== null
   }
 
+  /**
+   * 
+   * @param to 
+   * @param requirePostQuantum 
+   * @param info 
+   * @param salt 
+   * @returns 
+   */
   async createStream(
     to: IIdentity,
     requirePostQuantum: boolean = true,
@@ -121,6 +160,14 @@ export default class Identity implements IIdentity {
     }
   }
 
+  /**
+   * 
+   * @param offer 
+   * @param requirePostQuantum 
+   * @param info 
+   * @param salt 
+   * @returns 
+   */
   async recoverStream(
     offer: IAESStreamOffer,
     requirePostQuantum: boolean = true,
@@ -156,7 +203,7 @@ export default class Identity implements IIdentity {
   }
 
   publicIdentity(){
-    return Identity.fromString( JSON.stringify(this.toJSON(false)) )
+    return Identity.fromString( this.toString(false) )
   }
 
   toBSON(extract: boolean = false) : Uint8Array{
@@ -195,7 +242,7 @@ export default class Identity implements IIdentity {
 
     let seedB64 = undefined 
     if(obj.seed){
-      seedB64 = typeof obj.seed == 'string' ? obj.seed : base64.encode(obj.seed)
+      seedB64 = typeof obj.seed == 'string' ? base64.decode(obj.seed) : obj.seed
     }
 
     const parsed = {
@@ -229,9 +276,15 @@ export default class Identity implements IIdentity {
    * @param extract if true, remove private key
    */
   toJSON(extract: boolean = false) {
+
+    let seedB64 = undefined 
+    if(extract == true && this.seed){
+      seedB64 = typeof this.seed == 'string' ? this.seed : base64.encode(this.seed)
+    }
+
     return {
       id: this.id,
-      seed: extract==true ? this.seed :  undefined,
+      seed: seedB64,
       key: {
         type: this.key.type,
         hash: this.key.hash,
@@ -241,6 +294,31 @@ export default class Identity implements IIdentity {
     };
   }
 
+  /**
+   * 
+   * @param jsonObj 
+   * @returns 
+   */
+  static fromJSON(jsonObj){
+    let obj = {
+      id: jsonObj.id,
+      seed: jsonObj.seed ? base64.decode(jsonObj.seed) :  undefined,
+      key: {
+        type: jsonObj.key.type,
+        hash: jsonObj.key.hash,
+        public: jsonObj.key.public,
+        private: jsonObj.key.private ? jsonObj.key.private : undefined
+      }
+    }
+
+    return new Identity(obj)
+  }
+
+  /**
+   * 
+   * @param includePostQuantum 
+   * @returns 
+   */
   toMini(includePostQuantum=true) {
 
     let pubKeys = {
@@ -264,13 +342,18 @@ export default class Identity implements IIdentity {
     };
   }
 
-  toString() {
-    return JSON.stringify(this.toJSON());
+  /**
+   * 
+   * @param extract 
+   * @returns 
+   */
+  toString(extract: boolean = false) {
+    return JSON.stringify(this.toJSON(extract));
   }
 
   static fromString(input: string) {
     const parsed = JSON.parse(input);
-    return new Identity(parsed);
+    return Identity.fromJSON(parsed);
   }
 
   static async fromRandomSeed(opts: any={}){
@@ -290,6 +373,14 @@ export default class Identity implements IIdentity {
     return new Identity({ key, seed, ...opts })
   }
 
+  /**
+   * 
+   * @param password 
+   * @param salt 
+   * @param rounds 
+   * @param opts 
+   * @returns 
+   */
   static async fromPasswordPbkdf2(
     password: string,
     salt: Buffer,
@@ -302,6 +393,19 @@ export default class Identity implements IIdentity {
     return new Identity({ key, seed, ...opts })
   }
 
+  /**
+   * 
+   * @param argon 
+   * @param password 
+   * @param salt 
+   * @param timeCost 
+   * @param memoryCost 
+   * @param parallelism 
+   * @param type 
+   * @param hashLength 
+   * @param opts 
+   * @returns 
+   */
   static async fromPasswordArgon2(
     argon: any,
     password: string,

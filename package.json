@@ -1,12 +1,11 @@
 {
   "name": "@dataparty/crypto",
   "private": false,
-  "version": "2.0.0",
+  "version": "1.2.0",
   "description": "dataparty crypto routines",
   "main": "index.js",
   "types": "index.d.ts",
   "dependencies": {
-    "@babel/runtime": "^7.23.2",
     "@deepkit/bson": "^1.0.15",
     "@deepkit/type": "^1.0.15",
     "@deepkit/type-spec": "^1.0.15",
@@ -29,6 +28,7 @@
     "index.d.ts"
   ],
   "devDependencies": {
+    "@babel/runtime": "^7.23.2",
     "@babel/cli": "^7.23.0",
     "@babel/core": "^7.23.2",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
