@@ -74,6 +74,14 @@ export default class Identity implements IIdentity {
     return message.verify(this);
   }
 
+  async signPQ() {
+    //
+  }
+
+  async verifyPQ() {
+    //
+  }
+
   assertHasPostQuatumKEM(){
     if(!this.hasPostQuatumKEM()){ throw new Error('no post quantum KEM') }
   }

@@ -611,13 +611,15 @@ const getPayload = (signer: IIdentity, data: any) => {
   const timestamp = Date.now();
   const sender = signer.toMini(false);
 
-  const payload = serializeBSONWithoutOptimiser({
+  const payload = {
     timestamp,
     sender,
     data
-  })
+  }
 
-  return { timestamp, sender, payload };
+  const payloadBSON = serializeBSONWithoutOptimiser(payload)
+
+  return { timestamp, sender, payload: payloadBSON };
 };
 
 /**
@@ -631,14 +633,17 @@ export const signData = async function(
 ): Promise<ISignature> {
   const { timestamp, sender, payload } = getPayload(signer, data);
 
-  logger(`signing ${payload.length} bytes as ${signer.toMini(false)}`);
+  logger(`signing ${payload.length} bytes as ${signer.key.hash}`);
 
   const payloadHash = hash(payload);
 
-  logger("data hash: " + base64.encode(payloadHash));
+  logger("payload hash: " + base64.encode(payloadHash));
 
   const signerPrivateSignKey = base64.decode(signer.key.private.sign);
   const payloadSignature = sign.detached(payloadHash, signerPrivateSignKey);
+
+  logger("signature: " + base64.encode(payloadSignature));
+
 
   return {
     timestamp,
@@ -656,14 +661,19 @@ export const verifyData = async function(
   signature: ISignature,
   data: any
 ): Promise<boolean> {
-  const { payload } = getPayload(signer, data)
-
   const theirPayloadSignature = signature.value
   
-  const payloadHash = hash(payload)
+  const payloadToHash = {
+    timestamp: signature.timestamp,
+    sender: signer.toMini(false),
+    data
+  }
+
+  const payloadHash = hash(serializeBSONWithoutOptimiser(payloadToHash))
 
   logger(`VERIFY - payloadHash: ${base64.encode(payloadHash)}`);
-  logger(`VERIFY - theirSignature: ${signature.value}`);
+  logger(`VERIFY - theirSignature: ${base64.encode(signature.value)}`);
+  logger(`VERIFY - expected signer: ${signer.key.hash}`);
 
   const theirPublicSignKey = base64.decode(signer.key.public.sign)
 
@@ -708,10 +718,15 @@ export const signDataPQ = async (
     sender,
     data
   })
-
+  
+  logger(`signing-pq ${payload.length} bytes as ${signer.key.hash}`);
   const payloadHash = hash(payload)
 
+  logger("payload hash: " + base64.encode(payloadHash));
+
   const signature = signClass.sign( privateKey, payloadHash)
+
+  logger("signature-pq: " + base64.encode(signature));
 
   return {
     timestamp,
@@ -757,6 +772,10 @@ export const verifyDataPQ = async (
   })
 
   const payloadHash = hash(payload)
+
+  logger(`VERIFY-PQ - payloadHash: ${base64.encode(payloadHash)}`);
+  logger(`VERIFY-PQ - theirSignature: ${base64.encode(signature.value)}`);
+  logger(`VERIFY-PQ - expected signer: ${signer.key.hash}`);
 
   return signClass.verify( base64.decode(signer.key.public[type]), payloadHash, signature.value )
 }

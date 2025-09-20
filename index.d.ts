@@ -54,8 +54,9 @@ declare interface IEncryptedData {
 }
 
 declare interface IMessage extends IEncryptedData {
-  verify(verifier: IIdentity): Promise<boolean>;
-  sign(signer: IIdentity): Promise<boolean>;
+  verify(verifier: IIdentity, requirePostQuantum: boolean): Promise<boolean>;
+  assertVerified(from: IIdentity, requirePostQuantum: boolean): Promise<void>;
+  sign(signer: IIdentity, requirePostQuantum: boolean, pqType: string): Promise<boolean>;
 }
 
 declare interface IDecryptedData {
