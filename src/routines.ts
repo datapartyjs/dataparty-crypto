@@ -911,6 +911,7 @@ export const createAESStream = async function(
   streamNonce: Uint8Array,
   info: Uint8Array | string=AES_OFFER_INFO,
   salt: Uint8Array | string=AES_OFFER_SALT,
+  aesSize: Number=512
 ): Promise<IAESStream> {
 
   let fullSecret = null
@@ -932,7 +933,7 @@ export const createAESStream = async function(
     
   }
 
-  const streamKey = await hkdf('sha512', fullSecret, salt, info, 32)
+  const streamKey = await hkdf('sha512', fullSecret, salt, info, aesSize/8)
 
   const stream = new AESStream(streamKey, streamNonce)
   return stream;
