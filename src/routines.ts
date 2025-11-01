@@ -11,9 +11,9 @@ import * as crypto from 'crypto'
 import * as bip39 from 'bip39'
 
 
-import { x25519 } from '@noble/curves/ed25519';
-import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
-import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa';
+import { x25519 } from '@noble/curves/ed25519.js';
+import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem.js';
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
 import { 
   slh_dsa_sha2_128f,
   slh_dsa_sha2_128s,
@@ -21,8 +21,8 @@ import {
   slh_dsa_sha2_192s,
   slh_dsa_sha2_256f,
   slh_dsa_sha2_256s
-} from '@noble/post-quantum/slh-dsa';
-import { siv } from '@noble/ciphers/aes';
+} from '@noble/post-quantum/slh-dsa.js';
+import { gcmsiv } from '@noble/ciphers/aes.js';
 
 import {parseObject, BaseParser, serializeBSONWithoutOptimiser} from '@deepkit/bson';
 
@@ -177,9 +177,9 @@ export const createKey = async (
     if(pqsignmlClass == null){ throw new Error('invalid pqsign_ml_type') }
     if(pqsignslhClass == null){ throw new Error('invalid pqsign_slh_type') }
 
-    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', 64)
-    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', 32)
-    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.seedLen)
+    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', pqkemClass.lengths.seed)
+    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', pqsignmlClass.lengths.seed)
+    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.lengths.seed)
   
   
     const pqKemKeyPair = pqkemClass.keygen( pqKemSeed );
@@ -734,7 +734,7 @@ export const signDataPQ = async (
 
   logger("payload hash: " + base64.encode(payloadHash));
 
-  const signature = signClass.sign( privateKey, payloadHash)
+  const signature = signClass.sign(payloadHash, privateKey)
 
   logger("signature-pq: " + base64.encode(signature));
 
@@ -793,7 +793,7 @@ export const verifyDataPQ = async (
   logger(`VERIFY-PQ - theirSignature: ${base64.encode(signature.value)}`);
   logger(`VERIFY-PQ - expected signer: ${signer.key.hash}`);
 
-  return signClass.verify( base64.decode(signer.key.public[type]), payloadHash, signature.value )
+  return signClass.verify( signature.value, payloadHash, base64.decode(signer.key.public[type]) )
 }
 
 
@@ -803,8 +803,8 @@ export const createNaclSharedSecret = async function(
 ): Promise<INaclSharedSecret> {
 
   const sharedSecret = x25519.getSharedSecret(
-    toHexString( base64.decode( from.key.private.box ) ),
-    toHexString( base64.decode( to.key.public.box ) )
+    base64.decode( from.key.private.box ),
+    base64.decode( to.key.public.box )
   )
 
   return {
@@ -883,7 +883,7 @@ export class AESStream implements IAESStream {
       data: plaintext
     })
 
-    let aesFn = siv(this.streamKey, this.txNonce)
+    let aesFn = gcmsiv(this.streamKey, this.txNonce)
 
     this.txNonce = nextTxNonce
 
@@ -893,7 +893,7 @@ export class AESStream implements IAESStream {
   async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
 
 
-    let aesFn = siv(this.streamKey, this.rxNonce)
+    let aesFn = gcmsiv(this.streamKey, this.rxNonce)
 
     const plaintext = aesFn.decrypt(ciphertext)
 
