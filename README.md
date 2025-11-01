@@ -17,7 +17,7 @@ dataparty cryptography
    * Classic and Post-Quantum encryption
  * GPU Resistant
    * SHA-512 for hashing
-   * AES-512-SIV for streaming encryption
+   * AES-GCM-SIV-256 for streaming encryption
  * Post-Quantum Ready
  * `Identity` contains classic and post quantum key pairs
    * TweetNaCL Box & Sign Keys

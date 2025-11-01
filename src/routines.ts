@@ -911,7 +911,7 @@ export const createAESStream = async function(
   streamNonce: Uint8Array,
   info: Uint8Array | string=AES_OFFER_INFO,
   salt: Uint8Array | string=AES_OFFER_SALT,
-  aesSize: Number=512
+  aesSize: Number=256
 ): Promise<IAESStream> {
 
   let fullSecret = null
