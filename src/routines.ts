@@ -142,7 +142,7 @@ export const hashKey = async (
 export const createKey = async (
   seed: Buffer,
   postQuantum: boolean = true,
-  type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
+  type: string = "nacl,nacl,ml_kem1024,ml_dsa65,slh_dsa_sha2_128f"
 ): Promise<IKey> => {
 
   if(seed.length != 64){
