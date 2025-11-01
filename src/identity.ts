@@ -121,6 +121,7 @@ export default class Identity implements IIdentity {
    * @param salt 
    * @returns 
    */
+  /*
   async createStream(
     to: IIdentity,
     requirePostQuantum: boolean = true,
@@ -158,7 +159,7 @@ export default class Identity implements IIdentity {
       streamNonce: base64.encode(streamNonce),
       stream
     }
-  }
+  }*/
 
   /**
    * 
@@ -168,6 +169,7 @@ export default class Identity implements IIdentity {
    * @param salt 
    * @returns 
    */
+  /*
   async recoverStream(
     offer: IAESStreamOffer,
     requirePostQuantum: boolean = true,
@@ -200,7 +202,7 @@ export default class Identity implements IIdentity {
 
     return stream
 
-  }
+  }*/
 
   publicIdentity(){
     return Identity.fromString( this.toString(false) )

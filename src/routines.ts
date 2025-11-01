@@ -46,7 +46,7 @@ const PQ_CLASSES = {
 const newNonce = () => randomBytes(box.nonceLength);
 
 export const Utils = {
-  randomBytes, base64, 
+  randomBytes, base64, hkdf
 }
 
 export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
@@ -853,11 +853,12 @@ export const recoverPQSharedSecret = async function(
   const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.pqkem));
   
   return {
-    cipherText, sharedSecret: base64.encode(sharedSecret)
+    cipherText,
+    sharedSecret: base64.encode(sharedSecret)
   }
 
 };
-
+/*
 function copyBuffer(src)  {
   var dst = new ArrayBuffer(src.byteLength);
   new Uint8Array(dst).set(new Uint8Array(src));
@@ -870,14 +871,13 @@ export class AESStream implements IAESStream {
   streamKey: Uint8Array;
 
   constructor(streamKey: Uint8Array, streamNonce: Uint8Array) {
-
     this.streamKey = streamKey
     this.rxNonce = new Uint8Array( copyBuffer(streamNonce) )
     this.txNonce = new Uint8Array( copyBuffer(streamNonce) )
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
-    const nextTxNonce = /* this.txNonce */ randomBytes(12)
+    const nextTxNonce =  randomBytes(12)
     const payload = serializeBSONWithoutOptimiser({
       nonce: nextTxNonce,
       data: plaintext
@@ -938,7 +938,7 @@ export const createAESStream = async function(
   const stream = new AESStream(streamKey, streamNonce)
   return stream;
 }
-
+*/
 
 export function extractPublicKeys (enc : Uint8Array) : IKeyBundle {
   const fullMessage = enc;

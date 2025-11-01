@@ -38,8 +38,8 @@ declare interface IIdentity extends IIdentityProps {
   assertHasPostQuatumKEM(): void;
   hasPostQuatumKEM(): boolean;
 
-  createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
-  recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
+  //createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
+  //recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
 
   toString(extract?: boolean): string;
   toBSON(extract?: boolean): Uint8Array;
@@ -74,7 +74,15 @@ declare interface INaclSharedSecret {
   sharedSecret: string;
 }
 
+declare interface IAESSharedSecret {
+  cipherText: string;
+  sharedSecret: string;
+}
+
 declare interface IAESStream {
+  key: Uint8Array;
+  rxNonce: Uint8Array;
+  txNonce: Uint8Array;
   encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }
@@ -83,5 +91,5 @@ declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
   streamNonce: string;
-  stream?: IAESStream;
+  //stream?: IAESStream;
 }
