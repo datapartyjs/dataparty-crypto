@@ -41,29 +41,59 @@ export default class AESStream implements IAESStream {
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
-    const nextTxNonce = /* this.txNonce */ Utils.randomBytes(12)
-    const payload = BSON.serializeBSONWithoutOptimiser({
-      nonce: nextTxNonce,
-      data: plaintext
-    })
+    if(this.offer.mode.indexOf('chain') != -1){
+      console.log('chaining')
 
-    let aesFn = gcmsiv(this.key, this.txNonce)
+      const nextTxNonce = /* this.txNonce */ Utils.randomBytes(12)
+      const payload = BSON.serializeBSONWithoutOptimiser({
+        nonce: nextTxNonce,
+        data: plaintext
+      })
 
-    this.txNonce = nextTxNonce
+      let aesFn = gcmsiv(this.key, this.txNonce)
 
-    return aesFn.encrypt(payload)
+      this.txNonce = nextTxNonce
+
+      return aesFn.encrypt(payload)
+
+    } else {
+
+      this.txNonce = Utils.randomBytes(12)
+      let aesFn = gcmsiv(this.key, this.txNonce)
+      const payload = BSON.serializeBSONWithoutOptimiser({
+        nonce: this.txNonce,
+        cipher: aesFn.encrypt(plaintext)
+      })
+
+      return payload
+
+    }
+    
   }
 
   async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
-    let aesFn = gcmsiv(this.key, this.rxNonce)
+    if(this.offer.mode.indexOf('chain') != -1){
+      console.log('chaining')
+      
+      let aesFn = gcmsiv(this.key, this.rxNonce)
 
-    const plaintext = aesFn.decrypt(ciphertext)
+      const plaintext = aesFn.decrypt(ciphertext)
 
-    const payload = BSON.parseObject(new BSON.BaseParser(plaintext))
+      const payload = BSON.parseObject(new BSON.BaseParser(plaintext))
 
-    this.rxNonce = payload.nonce
+      this.rxNonce = payload.nonce
 
-    return payload.data
+      return payload.data
+
+    } else {
+
+      const payload = BSON.parseObject(new BSON.BaseParser(ciphertext))
+      this.rxNonce = payload.nonce
+      let aesFn = gcmsiv(this.key, this.rxNonce)
+      const plaintext = aesFn.decrypt(payload.cipher)
+
+      return plaintext
+    }
   }
 
   async getOffer() : Promise<IAESStreamOffer> {
@@ -114,7 +144,6 @@ export default class AESStream implements IAESStream {
     return new AESStream({
       identity,
       key: streamKey,
-      nounce: streamNonce,
       offer: streamOffer
     })
   }
@@ -196,7 +225,6 @@ export default class AESStream implements IAESStream {
     return new AESStream({
       identity,
       key: streamKey,
-      nounce: offer.streamNonce,
       offer: streamOffer,
     })
 
