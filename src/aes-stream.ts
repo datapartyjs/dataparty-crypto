@@ -15,11 +15,15 @@ import {
 } from "./routines";
 
 
+const AES_OFFER_INFO = 'aesoffer'
+const AES_OFFER_SALT = Utils.base64.decode('kr7/W7rHJD6gMpK5oLfER/ubYcqf7DqNrZThLAi9PSs=')
+
 function copyBuffer(src)  {
   var dst = new ArrayBuffer(src.byteLength);
   new Uint8Array(dst).set(new Uint8Array(src));
   return dst;
 }
+
 
 export default class AESStream implements IAESStream {
   identity: IIdentity;
@@ -27,16 +31,14 @@ export default class AESStream implements IAESStream {
   txNonce: Uint8Array;
   key: Uint8Array;
   offer: IAESStreamOffer;
-  mode: 'chain+counter' | 'counter' | 'chain+random'
 
-  constructor(opts = {/*identity, key, nounce, offer, mode*/} as any) {
+  constructor(opts = {/*identity, key, offer, mode*/} as any) {
 
     this.identity = opts.identity
     this.key = opts.key
-    this.rxNonce = new Uint8Array( copyBuffer(opts.nounce) )
-    this.txNonce = new Uint8Array( copyBuffer(opts.nounce) )
+    this.rxNonce = new Uint8Array( copyBuffer(opts.offer.streamNonce) )
+    this.txNonce = new Uint8Array( copyBuffer(opts.offer.streamNonce) )
     this.offer = opts.offer
-    this.mode = opts.mode
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
@@ -71,8 +73,9 @@ export default class AESStream implements IAESStream {
 
   static async createStream(
     identity: Identity,
-    to: IIdentity,
+    to: Identity,
     requirePostQuantum: boolean = true,
+    mode: 'chain+random' | 'random' = 'chain+random',
     info?: Uint8Array | string,
     salt?: Uint8Array | string,
     aesSize: number=256
@@ -94,9 +97,43 @@ export default class AESStream implements IAESStream {
     const naclSharedSecret = await createNaclSharedSecret(to, identity)
     const streamNonce = Utils.randomBytes(12)
     
+    const streamKey = await AESStream.createStreamKey(
+      naclSharedSecret,
+      pqSharedSecret,
+      info,
+      salt,
+      aesSize
+    )
+    
+    const streamOffer = {
+      sender: identity.toJSON(false),
+      pqCipherText: pqSharedSecret.cipherText,
+      streamNonce: streamNonce,
+      mode: mode
+    }
+
+    return new AESStream({
+      identity,
+      key: streamKey,
+      nounce: streamNonce,
+      offer: streamOffer
+    })
+  }
+
+  static async createStreamKey(
+    naclSharedSecret: INaclSharedSecret=null,
+    pqSharedSecret: IPQSharedSecret=null,
+    info: Uint8Array | string=AES_OFFER_INFO,
+    salt: Uint8Array | string=AES_OFFER_SALT,
+    aesSize: number=256
+  ) : Promise<Uint8Array> {
+    
     let fullSecret = null
 
     if(naclSharedSecret && pqSharedSecret){
+
+      console.log('naclSharedSecret',naclSharedSecret)
+      console.log('pqSharedSecret', pqSharedSecret)
     
       fullSecret = Buffer.concat([ 
         Utils.base64.decode(naclSharedSecret.sharedSecret),
@@ -115,36 +152,58 @@ export default class AESStream implements IAESStream {
 
     const streamKey = await Utils.hkdf('sha512', fullSecret, salt, info, aesSize/8)
 
+    return streamKey
 
-    /**
-     *  sender: IIdentity;
-     *  pqCipherText: string;
-     *  streamNonce: string;
-     */
+  }
+
+  static async recoverStream(
+    identity: Identity,
+    offer: IAESStreamOffer,
+    requirePostQuantum: boolean = true,
+    info?: Uint8Array | string,
+    salt?: Uint8Array | string,
+    aesSize: number=256
+  ) : Promise<IAESStream> {
+    
+    let pqSharedSecret = null
 
     const streamOffer = {
-      key: streamKey,
-      nounce: streamNonce,
-      identity: identity.publicIdentity()
+      pqCipherText: offer.pqCipherText,
+      streamNonce: offer.streamNonce,
+      sender: Identity.fromJSON(offer.sender),
+      mode: offer.mode
     }
+
+
+    if(requirePostQuantum){
+      streamOffer.sender.assertHasPostQuatumKEM()
+      identity.assertHasPostQuatumKEM()
+    }
+    
+    if(identity.hasPostQuatumKEM() && streamOffer.sender.hasPostQuatumKEM()){
+      
+      pqSharedSecret = await recoverPQSharedSecret(identity, offer.pqCipherText)
+      
+    }
+
+    const naclSharedSecret = await createNaclSharedSecret(streamOffer.sender, identity)
+
+    const streamKey = await AESStream.createStreamKey(
+      naclSharedSecret,
+      pqSharedSecret,
+      info,
+      salt,
+      aesSize
+    )
+
 
     return new AESStream({
       identity,
       key: streamKey,
-      nounce: streamNonce,
+      nounce: offer.streamNonce,
       offer: streamOffer,
-      mode: 'chain+random'
     })
-  }
 
-  /*static recoverStream(
-    from: IIdentity,
-    offer: IAESStreamOffer,
-    requirePostQuantum: boolean = true,
-    info?: Uint8Array | string,
-    salt?: Uint8Array | string
-  ) : Promise<IAESStream> {
-    //
-  }*/
+  }
 }
 

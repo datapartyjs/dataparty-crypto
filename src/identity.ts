@@ -284,7 +284,7 @@ export default class Identity implements IIdentity {
       seedB64 = typeof this.seed == 'string' ? this.seed : base64.encode(this.seed)
     }
 
-    return {
+    let obj = {
       id: this.id,
       seed: seedB64,
       key: {
@@ -293,7 +293,14 @@ export default class Identity implements IIdentity {
         public: this.key.public,
         private: extract == true ? this.key.private : undefined
       }
-    };
+    }
+
+    if(!extract){
+      delete obj.seed
+      delete obj.key.private
+    }
+
+    return obj
   }
 
   /**

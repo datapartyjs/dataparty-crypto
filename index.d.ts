@@ -91,5 +91,6 @@ declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
   streamNonce: string;
+  mode: string;
   //stream?: IAESStream;
 }

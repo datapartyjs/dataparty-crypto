@@ -6,7 +6,8 @@ export * as Routines from './routines'
 //export * as Identity from './identity'
 import * as MessageImpl from './message'
 import * as IdentityImpl from './identity'
+import * as AESStreamImpl from './aes-stream'
 export const Message = MessageImpl.default
 export const Identity = IdentityImpl.default
-
+export const AESStream = AESStreamImpl.default
 

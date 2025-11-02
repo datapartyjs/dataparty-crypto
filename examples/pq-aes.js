@@ -11,15 +11,23 @@ async function main (){
     const bobPublicKey = bobFullKey.publicIdentity()
 
 
-    const aliceOffer = await aliceFullKey.createStream( bobPublicKey )
-    const bobStream = await bobFullKey.recoverStream(aliceOffer)
+    const aliceAesStream = await dataparty_crypto.AESStream.createStream(
+        aliceFullKey,
+        bobPublicKey
+    )
 
-    console.log(aliceOffer)
-    console.log('bob has stream')
+    console.log('alice stream offer', aliceAesStream.offer)
 
-    const aliceMsg = await aliceOffer.stream.encrypt(new TextEncoder().encode('time to party'))
-    const aliceMsg2 = await aliceOffer.stream.encrypt(new TextEncoder().encode('rock on ninjas!'))
-    const aliceMsg3 = await aliceOffer.stream.encrypt(new TextEncoder().encode('🖤'))
+    const bobAesStream = await dataparty_crypto.AESStream.recoverStream(
+        bobFullKey,
+        aliceAesStream.offer
+    )
+
+    console.log('bob has stream', bobAesStream)
+
+    const aliceMsg = await aliceAesStream.encrypt(new TextEncoder().encode('time to party'))
+    const aliceMsg2 = await aliceAesStream.encrypt(new TextEncoder().encode('rock on ninjas!'))
+    const aliceMsg3 = await aliceAesStream.encrypt(new TextEncoder().encode('🖤'))
 
 
 
@@ -27,9 +35,9 @@ async function main (){
     console.log('aliceMsg3 [', aliceMsg3, ']')
     console.log('aliceMsg2 [', aliceMsg2, ']')
 
-    const bobMsg = await bobStream.decrypt(aliceMsg)
-    const bobMsg2 = await bobStream.decrypt(aliceMsg2)
-    const bobMsg3 = await bobStream.decrypt(aliceMsg3)
+    const bobMsg = await bobAesStream.decrypt(aliceMsg)
+    const bobMsg2 = await bobAesStream.decrypt(aliceMsg2)
+    const bobMsg3 = await bobAesStream.decrypt(aliceMsg3)
 
 
     console.log( bobFullKey.key.public )
