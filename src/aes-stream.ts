@@ -1,5 +1,4 @@
 import { Buffer } from 'buffer'
-import Message from "./message";
 import { gcmsiv } from '@noble/ciphers/aes.js';
 
 import Identity from "./identity";
@@ -131,9 +130,6 @@ export default class AESStream implements IAESStream {
     let fullSecret = null
 
     if(naclSharedSecret && pqSharedSecret){
-
-      console.log('naclSharedSecret',naclSharedSecret)
-      console.log('pqSharedSecret', pqSharedSecret)
     
       fullSecret = Buffer.concat([ 
         Utils.base64.decode(naclSharedSecret.sharedSecret),
