@@ -258,6 +258,13 @@ Interface:
 
 ```typescript
 declare interface IAESStream {
+  key: Uint8Array;
+  identity: IIdentity;
+  rxNonce: Uint8Array;
+  txNonce: Uint8Array;
+  key: Uint8Array;
+  offer: IAESStreamOffer;
+
   encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }
@@ -266,7 +273,7 @@ declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
   streamNonce: string;
-  stream?: IAESStream;
+  mode: string;
 }
 ```
 
