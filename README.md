@@ -22,7 +22,7 @@ dataparty cryptography
  * `Identity` contains classic and post quantum key pairs
    * TweetNaCL Box & Sign Keys
    * Crystal-Kybers KEM Key
-     * default: ml_kem768
+     * default: ml_kem1024
      * Supported: ml_kem512, ml_kem768, ml_kem1024
    * Dilithium Signing Key
      * default: ml_dsa65
