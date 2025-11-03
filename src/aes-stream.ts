@@ -1,6 +1,9 @@
 import { Buffer } from 'buffer'
 import { gcmsiv } from '@noble/ciphers/aes.js';
 
+import Debug from "debug";
+const logger = Debug("dataparty-crypto.AESStream");
+
 import Identity from "./identity";
 
 import {
@@ -38,11 +41,18 @@ export default class AESStream implements IAESStream {
     this.rxNonce = new Uint8Array( copyBuffer(opts.offer.streamNonce) )
     this.txNonce = new Uint8Array( copyBuffer(opts.offer.streamNonce) )
     this.offer = opts.offer
+
+    logger('new stream',{
+      key: this.key,
+      to: this.identity.key.hash,
+      from: this.offer.sender.key.hash,
+      nonce: opts.offer.streamNonce
+    })
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
     if(this.offer.mode.indexOf('chain') != -1){
-      console.log('chaining')
+      logger('chaining')
 
       const nextTxNonce = Utils.randomBytes(12)
       const payload = BSON.serializeBSONWithoutOptimiser({
@@ -51,10 +61,11 @@ export default class AESStream implements IAESStream {
       })
 
       let aesFn = gcmsiv(this.key, this.txNonce)
+      const val = aesFn.encrypt(payload)
 
       this.txNonce = nextTxNonce
 
-      return aesFn.encrypt(payload)
+      return val
 
     } else {
 
@@ -73,7 +84,7 @@ export default class AESStream implements IAESStream {
 
   async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
     if(this.offer.mode.indexOf('chain') != -1){
-      console.log('chaining')
+      logger('chaining')
       
       let aesFn = gcmsiv(this.key, this.rxNonce)
 
