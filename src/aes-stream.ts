@@ -44,9 +44,9 @@ export default class AESStream implements IAESStream {
     if(this.offer.mode.indexOf('chain') != -1){
       console.log('chaining')
 
-      const nextTxNonce = /* this.txNonce */ Utils.randomBytes(12)
+      const nextTxNonce = Utils.randomBytes(12)
       const payload = BSON.serializeBSONWithoutOptimiser({
-        nonce: nextTxNonce,
+        nonce: this.txNonce,
         data: plaintext
       })
 
