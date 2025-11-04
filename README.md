@@ -17,12 +17,12 @@ dataparty cryptography
    * Classic and Post-Quantum encryption
  * GPU Resistant
    * SHA-512 for hashing
-   * AES-512-SIV for streaming encryption
+   * AES-GCM-SIV-256 for streaming encryption
  * Post-Quantum Ready
  * `Identity` contains classic and post quantum key pairs
    * TweetNaCL Box & Sign Keys
    * Crystal-Kybers KEM Key
-     * default: ml_kem768
+     * default: ml_kem1024
      * Supported: ml_kem512, ml_kem768, ml_kem1024
    * Dilithium Signing Key
      * default: ml_dsa65
@@ -258,6 +258,13 @@ Interface:
 
 ```typescript
 declare interface IAESStream {
+  key: Uint8Array;
+  identity: IIdentity;
+  rxNonce: Uint8Array;
+  txNonce: Uint8Array;
+  key: Uint8Array;
+  offer: IAESStreamOffer;
+
   encrypt(plaintext: Uint8Array): Promise<Uint8Array>;
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }
@@ -266,46 +273,55 @@ declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
   streamNonce: string;
-  stream?: IAESStream;
+  mode: string;
 }
 ```
 
 Example usage:
 
 ```js
-
-const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'alice'})
-const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'bob'})
-
-
-const bobPublicKey = bobFullKey.publicIdentity()
+  const aliceFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'alice'})
+  const bobFullKey = await dataparty_crypto.Identity.fromRandomSeed({id: 'bob'})
 
 
-const aliceOffer = await aliceFullKey.createStream( bobPublicKey )
-
-console.log(aliceOffer)
-console.log('bob has stream')
-
-const aliceMsg = await aliceOffer.stream.encrypt(new TextEncoder().encode('time to party'))
-const aliceMsg2 = await aliceOffer.stream.encrypt(new TextEncoder().encode('rock on ninjas!'))
-const aliceMsg3 = await aliceOffer.stream.encrypt(new TextEncoder().encode('🖤'))
+  const alicePublicKey = aliceFullKey.publicIdentity()
+  const bobPublicKey = bobFullKey.publicIdentity()
 
 
+  const aliceAesStream = await dataparty_crypto.AESStream.createStream(
+      aliceFullKey,
+      bobPublicKey
+  )
 
-console.log('aliceMsg1 [', aliceMsg, ']')
-console.log('aliceMsg3 [', aliceMsg3, ']')
-console.log('aliceMsg2 [', aliceMsg2, ']')
+  console.log('alice stream offer', aliceAesStream.offer)
 
-const bobMsg = await bobStream.decrypt(aliceMsg)
-const bobMsg2 = await bobStream.decrypt(aliceMsg2)
-const bobMsg3 = await bobStream.decrypt(aliceMsg3)
+  const bobAesStream = await dataparty_crypto.AESStream.recoverStream(
+      bobFullKey,
+      aliceAesStream.offer
+  )
+
+  console.log('bob has stream', bobAesStream)
+
+  const aliceMsg = await aliceAesStream.encrypt(new TextEncoder().encode('time to party'))
+  const aliceMsg2 = await aliceAesStream.encrypt(new TextEncoder().encode('rock on ninjas!'))
+  const aliceMsg3 = await aliceAesStream.encrypt(new TextEncoder().encode('🖤'))
 
 
-console.log( bobFullKey.key.public )
 
-console.log('msg1 [', new TextDecoder().decode(bobMsg), ']')
-console.log('msg3 [', new TextDecoder().decode(bobMsg3), ']')
-console.log('msg2 [', new TextDecoder().decode(bobMsg2), ']')
+  console.log('aliceMsg1 [', aliceMsg, ']')
+  console.log('aliceMsg3 [', aliceMsg3, ']')
+  console.log('aliceMsg2 [', aliceMsg2, ']')
+
+  const bobMsg = await bobAesStream.decrypt(aliceMsg)
+  const bobMsg2 = await bobAesStream.decrypt(aliceMsg2)
+  const bobMsg3 = await bobAesStream.decrypt(aliceMsg3)
+
+
+  console.log( bobFullKey.key.public )
+
+  console.log('msg1 [', new TextDecoder().decode(bobMsg), ']')
+  console.log('msg3 [', new TextDecoder().decode(bobMsg3), ']')
+  console.log('msg2 [', new TextDecoder().decode(bobMsg2), ']')
 ```
 
 

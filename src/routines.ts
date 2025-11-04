@@ -11,9 +11,9 @@ import * as crypto from 'crypto'
 import * as bip39 from 'bip39'
 
 
-import { x25519 } from '@noble/curves/ed25519';
-import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem';
-import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa';
+import { x25519 } from '@noble/curves/ed25519.js';
+import { ml_kem512, ml_kem768, ml_kem1024 } from '@noble/post-quantum/ml-kem.js';
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
 import { 
   slh_dsa_sha2_128f,
   slh_dsa_sha2_128s,
@@ -21,8 +21,8 @@ import {
   slh_dsa_sha2_192s,
   slh_dsa_sha2_256f,
   slh_dsa_sha2_256s
-} from '@noble/post-quantum/slh-dsa';
-import { siv } from '@noble/ciphers/aes';
+} from '@noble/post-quantum/slh-dsa.js';
+import { gcmsiv } from '@noble/ciphers/aes.js';
 
 import {parseObject, BaseParser, serializeBSONWithoutOptimiser} from '@deepkit/bson';
 
@@ -46,7 +46,7 @@ const PQ_CLASSES = {
 const newNonce = () => randomBytes(box.nonceLength);
 
 export const Utils = {
-  randomBytes, base64, 
+  randomBytes, base64, hkdf
 }
 
 export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
@@ -142,7 +142,7 @@ export const hashKey = async (
 export const createKey = async (
   seed: Buffer,
   postQuantum: boolean = true,
-  type: string = "nacl,nacl,ml_kem768,ml_dsa65,slh_dsa_sha2_128f"
+  type: string = "nacl,nacl,ml_kem1024,ml_dsa65,slh_dsa_sha2_128f"
 ): Promise<IKey> => {
 
   if(seed.length != 64){
@@ -177,9 +177,9 @@ export const createKey = async (
     if(pqsignmlClass == null){ throw new Error('invalid pqsign_ml_type') }
     if(pqsignslhClass == null){ throw new Error('invalid pqsign_slh_type') }
 
-    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', 64)
-    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', 32)
-    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.seedLen)
+    const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', pqkemClass.lengths.seed)
+    const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', pqsignmlClass.lengths.seed)
+    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.lengths.seed)
   
   
     const pqKemKeyPair = pqkemClass.keygen( pqKemSeed );
@@ -734,7 +734,7 @@ export const signDataPQ = async (
 
   logger("payload hash: " + base64.encode(payloadHash));
 
-  const signature = signClass.sign( privateKey, payloadHash)
+  const signature = signClass.sign(payloadHash, privateKey)
 
   logger("signature-pq: " + base64.encode(signature));
 
@@ -793,7 +793,7 @@ export const verifyDataPQ = async (
   logger(`VERIFY-PQ - theirSignature: ${base64.encode(signature.value)}`);
   logger(`VERIFY-PQ - expected signer: ${signer.key.hash}`);
 
-  return signClass.verify( base64.decode(signer.key.public[type]), payloadHash, signature.value )
+  return signClass.verify( signature.value, payloadHash, base64.decode(signer.key.public[type]) )
 }
 
 
@@ -803,8 +803,8 @@ export const createNaclSharedSecret = async function(
 ): Promise<INaclSharedSecret> {
 
   const sharedSecret = x25519.getSharedSecret(
-    toHexString( base64.decode( from.key.private.box ) ),
-    toHexString( base64.decode( to.key.public.box ) )
+    base64.decode( from.key.private.box ),
+    base64.decode( to.key.public.box )
   )
 
   return {
@@ -853,91 +853,11 @@ export const recoverPQSharedSecret = async function(
   const sharedSecret = pqkemClass.decapsulate(base64.decode(cipherText), base64.decode(identity.key.private.pqkem));
   
   return {
-    cipherText, sharedSecret: base64.encode(sharedSecret)
+    cipherText,
+    sharedSecret: base64.encode(sharedSecret)
   }
 
 };
-
-function copyBuffer(src)  {
-  var dst = new ArrayBuffer(src.byteLength);
-  new Uint8Array(dst).set(new Uint8Array(src));
-  return dst;
-}
-
-export class AESStream implements IAESStream {
-  rxNonce: Uint8Array;
-  txNonce: Uint8Array;
-  streamKey: Uint8Array;
-
-  constructor(streamKey: Uint8Array, streamNonce: Uint8Array) {
-
-    this.streamKey = streamKey
-    this.rxNonce = new Uint8Array( copyBuffer(streamNonce) )
-    this.txNonce = new Uint8Array( copyBuffer(streamNonce) )
-  }
-
-  async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
-    const nextTxNonce = /* this.txNonce */ randomBytes(12)
-    const payload = serializeBSONWithoutOptimiser({
-      nonce: nextTxNonce,
-      data: plaintext
-    })
-
-    let aesFn = siv(this.streamKey, this.txNonce)
-
-    this.txNonce = nextTxNonce
-
-    return aesFn.encrypt(payload)
-  }
-
-  async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
-
-
-    let aesFn = siv(this.streamKey, this.rxNonce)
-
-    const plaintext = aesFn.decrypt(ciphertext)
-
-    const payload = parseObject(new BaseParser(plaintext))
-
-    this.rxNonce = payload.nonce
-
-    return payload.data
-  }
-}
-
-export const createAESStream = async function(
-  naclSharedSecret: INaclSharedSecret=null,
-  pqSharedSecret: IPQSharedSecret=null,
-  streamNonce: Uint8Array,
-  info: Uint8Array | string=AES_OFFER_INFO,
-  salt: Uint8Array | string=AES_OFFER_SALT,
-): Promise<IAESStream> {
-
-  let fullSecret = null
-
-  if(naclSharedSecret && pqSharedSecret){
-  
-    fullSecret = Buffer.concat([ 
-      base64.decode(naclSharedSecret.sharedSecret),
-      base64.decode(pqSharedSecret.sharedSecret)
-    ])
-
-  } else if (naclSharedSecret && !pqSharedSecret){
-
-    fullSecret = base64.decode(naclSharedSecret.sharedSecret)
-
-  } else if (!naclSharedSecret && pqSharedSecret){
-
-    fullSecret = base64.decode(pqSharedSecret.sharedSecret)
-    
-  }
-
-  const streamKey = await hkdf('sha512', fullSecret, salt, info, 32)
-
-  const stream = new AESStream(streamKey, streamNonce)
-  return stream;
-}
-
 
 export function extractPublicKeys (enc : Uint8Array) : IKeyBundle {
   const fullMessage = enc;

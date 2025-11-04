@@ -24,7 +24,12 @@ async function main (){
   
   console.log('fromString', aliceFromString)
   console.log('fromBSON', aliceFromBSON)
-  
+
+  console.log('first one')
+
+  let msg0 = await alice.sign('quick test', true)
+
+  console.log('second one')
 
   let msg1 = await aliceFromBSON.sign('quick test', true)
   let verified1 = await aliceFromString.verify(msg1, true)

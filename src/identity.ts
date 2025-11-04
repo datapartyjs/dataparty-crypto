@@ -113,95 +113,6 @@ export default class Identity implements IIdentity {
     return reach(this.key, 'public.pqkem', null) !== null
   }
 
-  /**
-   * 
-   * @param to 
-   * @param requirePostQuantum 
-   * @param info 
-   * @param salt 
-   * @returns 
-   */
-  async createStream(
-    to: IIdentity,
-    requirePostQuantum: boolean = true,
-    info?: Uint8Array | string,
-    salt?: Uint8Array | string
-  ) : Promise<IAESStreamOffer> {
-  
-    let pqSharedSecret = null
-
-    if(requirePostQuantum){
-      to.assertHasPostQuatumKEM()
-      this.assertHasPostQuatumKEM()
-    }
-    
-    if(this.hasPostQuatumKEM() && to.hasPostQuatumKEM()){
-      
-      pqSharedSecret = await createPQSharedSecret(to)
-      
-    }
-    
-    const naclSharedSecret = await createNaclSharedSecret(to, this)
-    const streamNonce = Utils.randomBytes(12)
-    
-    const stream = await createAESStream(
-        naclSharedSecret,
-        pqSharedSecret,
-        streamNonce,
-        info,
-        salt
-    )
-    
-    return {
-      sender: this.publicIdentity(),
-      pqCipherText: pqSharedSecret==null ? null : pqSharedSecret.cipherText,
-      streamNonce: base64.encode(streamNonce),
-      stream
-    }
-  }
-
-  /**
-   * 
-   * @param offer 
-   * @param requirePostQuantum 
-   * @param info 
-   * @param salt 
-   * @returns 
-   */
-  async recoverStream(
-    offer: IAESStreamOffer,
-    requirePostQuantum: boolean = true,
-    info?: Uint8Array | string,
-    salt?: Uint8Array | string
-  ) : Promise<IAESStream> {
-
-    let pqSharedSecret = null
-
-    if(requirePostQuantum){
-      offer.sender.assertHasPostQuatumKEM()
-      this.assertHasPostQuatumKEM()
-    }
-    
-    if(this.hasPostQuatumKEM() && offer.sender.hasPostQuatumKEM()){
-      
-      pqSharedSecret = await recoverPQSharedSecret(this, offer.pqCipherText)
-      
-    }
-
-    const naclSharedSecret = await createNaclSharedSecret(offer.sender, this)
-
-    const stream = await createAESStream(
-      naclSharedSecret,
-      pqSharedSecret,
-      base64.decode(offer.streamNonce),
-      info,
-      salt
-    )
-
-    return stream
-
-  }
-
   publicIdentity(){
     return Identity.fromString( this.toString(false) )
   }
@@ -282,7 +193,7 @@ export default class Identity implements IIdentity {
       seedB64 = typeof this.seed == 'string' ? this.seed : base64.encode(this.seed)
     }
 
-    return {
+    let obj = {
       id: this.id,
       seed: seedB64,
       key: {
@@ -291,7 +202,14 @@ export default class Identity implements IIdentity {
         public: this.key.public,
         private: extract == true ? this.key.private : undefined
       }
-    };
+    }
+
+    if(!extract){
+      delete obj.seed
+      delete obj.key.private
+    }
+
+    return obj
   }
 
   /**
