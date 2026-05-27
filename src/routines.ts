@@ -46,7 +46,7 @@ const PQ_CLASSES = {
 const newNonce = () => randomBytes(box.nonceLength);
 
 export const Utils = {
-  randomBytes, base64, hkdf
+  randomBytes, base64, hkdf, hash
 }
 
 export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }
