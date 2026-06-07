@@ -179,7 +179,7 @@ export const createKey = async (
 
     const pqKemSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqkem', pqkemClass.lengths.seed)
     const pqSignMLSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignml', pqsignmlClass.lengths.seed)
-    const pqSignSLDSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.lengths.seed)
+    const pqSignSLHSeed = await hkdf('sha512', seed, HkdfFullseedSalt, 'pqsignslh', pqsignslhClass.lengths.seed)
   
   
     const pqKemKeyPair = pqkemClass.keygen( pqKemSeed );
