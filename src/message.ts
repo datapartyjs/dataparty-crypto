@@ -40,7 +40,7 @@ export default class Message implements IMessage {
   }
 
   fromBSON(bson: Uint8Array){
-    const {enc, sig} = BSON.parseObject( BSON.BaseParser(bson) )
+    const {enc, sig} = BSON.parseObject( new BSON.BaseParser(bson) )
 
     this.enc = enc
     this.sig = sig
