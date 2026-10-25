@@ -51,12 +51,21 @@ export default class AESStream implements IAESStream {
   }
 
   async encrypt(plaintext: Uint8Array): Promise<Uint8Array> {
+
+    if(this.offer.compression){
+      if(this.offer.compression.indexOf('zstd') == 0){
+        let [ first, level ] = this.offer.compression.split('-')
+
+        plaintext = Utils.ZStandard.compress( plaintext, level )
+      }
+    }
+
     if(this.offer.mode.indexOf('chain') != -1){
       logger('chaining')
 
       const nextTxNonce = Utils.randomBytes(12)
       const payload = BSON.serializeBSONWithoutOptimiser({
-        nonce: this.txNonce,
+        nonce: nextTxNonce,
         data: plaintext
       })
 
@@ -83,6 +92,9 @@ export default class AESStream implements IAESStream {
   }
 
   async decrypt(ciphertext: Uint8Array): Promise<Uint8Array> {
+
+    let content = null
+
     if(this.offer.mode.indexOf('chain') != -1){
       logger('chaining')
       
@@ -94,7 +106,7 @@ export default class AESStream implements IAESStream {
 
       this.rxNonce = payload.nonce
 
-      return payload.data
+      content = payload.data
 
     } else {
 
@@ -103,8 +115,18 @@ export default class AESStream implements IAESStream {
       let aesFn = gcmsiv(this.key, this.rxNonce)
       const plaintext = aesFn.decrypt(payload.cipher)
 
-      return plaintext
+      content = plaintext
     }
+
+    if(this.offer.compression){
+      if(this.offer.compression.indexOf('zstd') == 0){
+        let [ first, level ] = this.offer.compression.split('-')
+
+        content = Utils.ZStandard.decompress( content, level )
+      }
+    }
+
+    return content
   }
 
   async getOffer() : Promise<IAESStreamOffer> {
@@ -116,6 +138,7 @@ export default class AESStream implements IAESStream {
     to: Identity,
     requirePostQuantum: boolean = true,
     mode: 'chain+random' | 'random' = 'chain+random',
+    compression: String = 'zstd-3',
     info?: Uint8Array | string,
     salt?: Uint8Array | string,
     aesSize: number=256
@@ -149,7 +172,8 @@ export default class AESStream implements IAESStream {
       sender: identity.toJSON(false),
       pqCipherText: pqSharedSecret.cipherText,
       streamNonce: streamNonce,
-      mode: mode
+      mode: mode,
+      compression
     }
 
     return new AESStream({
@@ -207,7 +231,8 @@ export default class AESStream implements IAESStream {
       pqCipherText: offer.pqCipherText,
       streamNonce: offer.streamNonce,
       sender: Identity.fromJSON(offer.sender),
-      mode: offer.mode
+      mode: offer.mode,
+      compression: offer.compression
     }
 
 

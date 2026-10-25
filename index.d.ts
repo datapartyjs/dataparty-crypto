@@ -96,4 +96,5 @@ declare interface IAESStreamOffer {
   pqCipherText: string;
   streamNonce: string;
   mode: string;
+  compression: String; //! ie: 'zstd-3'
 }
