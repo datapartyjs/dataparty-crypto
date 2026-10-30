@@ -15,8 +15,7 @@ import {
   createSeedFromPasswordArgon2,
   createPQSharedSecret,
   recoverPQSharedSecret,
-  createNaclSharedSecret,
-  createAESStream
+  createNaclSharedSecret
 } from "./routines";
 
 
@@ -320,7 +319,6 @@ export default class Identity implements IIdentity {
    * @param memoryCost 
    * @param parallelism 
    * @param type 
-   * @param hashLength 
    * @param opts 
    * @returns 
    */
@@ -332,7 +330,6 @@ export default class Identity implements IIdentity {
     memoryCost?: Number,
     parallelism?: Number,
     type?: string,
-    hashLength?: Number,
     opts: any={}
   ) {
     const seed = await createSeedFromPasswordArgon2(
@@ -342,8 +339,7 @@ export default class Identity implements IIdentity {
       timeCost,
       memoryCost,
       parallelism,
-      type,
-      hashLength
+      type
     )
 
     const key = await createKey( seed )

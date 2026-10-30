@@ -26,6 +26,14 @@ import { gcmsiv } from '@noble/ciphers/aes.js';
 
 import {parseObject, BaseParser, serializeBSONWithoutOptimiser} from '@deepkit/bson';
 
+
+//! zstd-wasm self-initialises from the wasm binary it ships, no init step needed
+import { compress, decompress } from "@dweb-browser/zstd-wasm";
+
+const ZStandard = {
+  compress, decompress
+}
+
 import Debug from "debug";
 const logger = Debug("dataparty-crypto.Routines");
 
@@ -46,7 +54,7 @@ const PQ_CLASSES = {
 const newNonce = () => randomBytes(box.nonceLength);
 
 export const Utils = {
-  randomBytes, base64, hkdf, hash
+  randomBytes, base64, hkdf, hash, ZStandard
 }
 
 export let BSON = { parseObject, BaseParser, serializeBSONWithoutOptimiser }

@@ -1,7 +1,7 @@
 {
   "name": "@dataparty/crypto",
   "private": false,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "dataparty crypto routines",
   "main": "index.js",
   "types": "index.d.ts",
@@ -9,6 +9,7 @@
     "@deepkit/bson": "^1.0.15",
     "@deepkit/type": "^1.0.15",
     "@deepkit/type-spec": "^1.0.15",
+    "@dweb-browser/zstd-wasm": "^1.2.1",
     "@noble/ciphers": "^2.0.1",
     "@noble/curves": "^2.0.1",
     "@noble/post-quantum": "^0.5.2",
