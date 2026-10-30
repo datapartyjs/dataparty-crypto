@@ -27,12 +27,11 @@ import { gcmsiv } from '@noble/ciphers/aes.js';
 import {parseObject, BaseParser, serializeBSONWithoutOptimiser} from '@deepkit/bson';
 
 
-import { compress, decompress, initSync } from "@dweb-browser/zstd-wasm";
-import get_zstd_wasm_binary from "@dweb-browser/zstd-wasm/zstd_wasm_bg_wasm";
-initSync(get_zstd_wasm_binary());
+//! zstd-wasm self-initialises from the wasm binary it ships, no init step needed
+import { compress, decompress } from "@dweb-browser/zstd-wasm";
 
 const ZStandard = {
-  compress, decompress, initSync
+  compress, decompress
 }
 
 import Debug from "debug";

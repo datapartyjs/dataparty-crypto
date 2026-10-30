@@ -91,10 +91,13 @@ declare interface IAESStream {
   decrypt(ciphertext: Uint8Array): Promise<Uint8Array>;
 }
 
+//! wire format for an offer's compression codec, ie: 'zstd-3', null means store bytes as-is
+declare type ICompression = `zstd-${number}` | null;
+
 declare interface IAESStreamOffer {
   sender: IIdentity;
   pqCipherText: string;
   streamNonce: string;
   mode: string;
-  compression: String; //! ie: 'zstd-3'
+  compression: ICompression;
 }

@@ -54,9 +54,9 @@ export default class AESStream implements IAESStream {
 
     if(this.offer.compression){
       if(this.offer.compression.indexOf('zstd') == 0){
-        let [ first, level ] = this.offer.compression.split('-')
+        let [ algorithm, level ] = this.offer.compression.split('-')
 
-        plaintext = Utils.ZStandard.compress( plaintext, level )
+        plaintext = Utils.ZStandard.compress( plaintext, Number(level) )
       }
     }
 
@@ -120,9 +120,9 @@ export default class AESStream implements IAESStream {
 
     if(this.offer.compression){
       if(this.offer.compression.indexOf('zstd') == 0){
-        let [ first, level ] = this.offer.compression.split('-')
+        let [ algorithm, level ] = this.offer.compression.split('-')
 
-        content = Utils.ZStandard.decompress( content, level )
+        content = Utils.ZStandard.decompress( content )
       }
     }
 
@@ -138,7 +138,7 @@ export default class AESStream implements IAESStream {
     to: Identity,
     requirePostQuantum: boolean = true,
     mode: 'chain+random' | 'random' = 'chain+random',
-    compression: String = 'zstd-3',
+    compression: ICompression = 'zstd-3',
     info?: Uint8Array | string,
     salt?: Uint8Array | string,
     aesSize: number=256
