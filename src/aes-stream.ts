@@ -147,7 +147,7 @@ export default class AESStream implements IAESStream {
     
     const streamOffer = {
       sender: identity.toJSON(false),
-      pqCipherText: pqSharedSecret.cipherText,
+      pqCipherText: pqSharedSecret?.cipherText,
       streamNonce: streamNonce,
       mode: mode
     }
