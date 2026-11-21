@@ -18,6 +18,8 @@ dataparty cryptography
  * GPU Resistant
    * SHA-512 for hashing
    * AES-GCM-SIV-256 for streaming encryption
+ * AES Stream Compression
+   * ZStandard
  * Post-Quantum Ready
  * `Identity` contains classic and post quantum key pairs
    * TweetNaCL Box & Sign Keys
@@ -76,7 +78,7 @@ declare interface IIdentity extends IIdentityProps {
   assertHasPostQuatumKEM(): void;
   hasPostQuatumKEM(): boolean;
 
-  createStream(to: IIdentity, requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
+  createStream(to: IIdentity, requirePostQuantum: boolean, mode?: string, compression?: ICompression, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStreamOffer>;
   recoverStream(offer: IAESStreamOffer,requirePostQuantum: boolean, info?: Uint8Array | string, salt?: Uint8Array | string): Promise<IAESStream>
 
   toString(extract?: boolean): string;
@@ -257,6 +259,9 @@ await signedMsg.assertVerified(alice)
 Interface:
 
 ```typescript
+//! wire format for an offer's compression codec, ie: 'zstd-3', null means store bytes as-is
+declare type ICompression = `zstd-${number}` | null;
+
 declare interface IAESStream {
   key: Uint8Array;
   identity: IIdentity;
@@ -274,8 +279,15 @@ declare interface IAESStreamOffer {
   pqCipherText: string;
   streamNonce: string;
   mode: string;
+  compression: ICompression;
 }
 ```
+
+
+#### AES Stream Compression
+
+Streams compress by default using zstandard compression. The compression settings are
+included in the offer. Pass a level to pick a different trade off, or `null` to seal bytes as-is.
 
 Example usage:
 
@@ -322,6 +334,28 @@ Example usage:
   console.log('msg1 [', new TextDecoder().decode(bobMsg), ']')
   console.log('msg3 [', new TextDecoder().decode(bobMsg3), ']')
   console.log('msg2 [', new TextDecoder().decode(bobMsg2), ']')
+```
+
+
+See `examples/aes-stream-compression.js`
+
+```js
+  const aliceCompressed = await dataparty_crypto.AESStream.createStream(
+      aliceFullKey,
+      bobPublicKey,
+      true,
+      'chain+random',
+      'zstd-9'
+  )
+
+  const compressed = await aliceCompressed.encrypt(new TextEncoder().encode('time to party'.repeat(10)))
+
+  const bobCompressed = await dataparty_crypto.AESStream.recoverStream(
+      bobFullKey,
+      aliceCompressed.offer
+  )
+
+  console.log('zstd-9 + aes-gcm-siv [', new TextDecoder().decode(await bobCompressed.decrypt(compressed)), ']')
 ```
 
 
